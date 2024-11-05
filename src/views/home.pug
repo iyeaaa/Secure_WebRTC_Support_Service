@@ -11,11 +11,18 @@ html(lang="en")
         main
             div#welcome
                 form
-                    input(placeholder="Room name", required, type=text)
-                    button#enterBtn Enter
-            div#myStream
-                video#myVideo(autoplay, playsinline, width=400, height=400)
-                button#muteBtn Mute
-                button#cameraBtn Turn Camera Off
+                    input#roomname(placeholder="Room name", required, type=text)
+                    input#nickname(placeholder="nickname", required, type=text)
+                    button#enterBtn Enter Room
+            div#call
+                div#myStream
+                    video#myVideo(autoplay, playsinline, width=400, height=400)
+                    button#muteBtn Mute
+                    button#cameraBtn Turn Camera Off
+                    video#peersFace(autoplay, playsinline, width=400, height=400)
+            div#chatting
+                form
+                    input(placeholder="Contents", required, type=text)
+                    button Send
         script(src='/socket.io/socket.io.js')
         script(src="/public/js/app.js")  
