@@ -39,7 +39,7 @@ welcomeForm.addEventListener("submit", async e => {
     await initCall();
     roomName = roomnameinput.value
     nickName = nicknameinput.value
-    socket.emit("enter_room", roomName, nickName);
+    socket.emit("join", roomName, nickName);
 })
 
 
@@ -91,7 +91,7 @@ async function getMedia() {
 
 /* Socket On Code */
 
-socket.on("new_member_enter", async (nickname, roomcount) => {
+socket.on("join", async (nickname) => {
     /* 초대장을 만드는 과정 */
     const offer = await myPeerConnection.createOffer();
     await myPeerConnection.setLocalDescription(offer)

@@ -14,7 +14,28 @@ app.get("/", (req, res) => res.render("home"));
 app.get("/*", (req, res) => res.redirect("/"));
 
 const handleListen = () => console.log('Listening on http://localhost:3000');
-//
+
+const users = {
+    "iyeaaa@naver.com": [
+        {email: "cyh1443@gmail.com", room: "a"},
+        {email: "sjj2305@naver.com", room: "b"}
+    ],
+    "cyh1443@gmail.com": [
+        {email: "iyeaaa@naver.com", room: "c"},
+        {email: "sjj2305@naver.com", room: "d"}
+    ],
+    "sjj2305@naver.com": [
+        {email: "cyh1443@gmail.com", room: "e"},
+        {email: "iyeaaa@naver.com", room: "f"}
+    ],
+}
+
+const login_info = {
+    "iyeaaa@naver.com": "123456",
+    "cyh1443@gmail.com": "123456",
+    "sjj2305@naver.com": "123456"
+}
+
 const httpServer = http.createServer(app);
 const wsServer = new Server(httpServer, {
     cors: {
@@ -50,11 +71,27 @@ wsServer.on("connection", socket => {
     socket.onAny((event) => {
         console.log(`Socket Event: ${event}`);
     });
-    socket.on("enter_room", (roomName, nickname) => {
+    socket.on("login", (email, password) => {
+        let message = "fail";
+        if (login_info[email] === undefined) {
+            console.log("사용자를 찾을 수 없음")
+        }
+        else if (String(password) !== login_info[email]) {
+            console.log(String(password))
+            console.log(login_info[email]);
+            console.log("사용자는 찾았으나 비밀번호가 다름")
+        }
+        else {
+            console.log("사용자 일치");
+            message = users[email];
+        }
+        socket.emit("login", email, message);
+    })
+    socket.on("join", (roomName, nickname) => {
         socket.join(roomName);
         socket.nickname = nickname
-        socket.to(roomName).emit("new_member_enter", socket.nickname, countRoom(roomName));
-        // wsServer.emit("update_rooms", getPublicRooms());
+        socket.to(roomName).emit("join", socket.nickname);
+        console.log(socket.nickname, ": join success")
     });
     socket.on("offer", (offer, roomName) => {
         socket.to(roomName).emit("offer", offer);
@@ -67,12 +104,7 @@ wsServer.on("connection", socket => {
     })
     socket.on("new_message", (msg, roomName) => {
         wsServer.emit("new_message", `${socket.nickname}: ${msg}`);
-        // done();
     });
-    // socket.on("nickname", (nickname, done) => {
-    //     socket['nickname'] = nickname;
-    //     done();
-    // });
     socket.on("disconnecting", () => {
         socket.rooms.forEach(room => {
             socket.to(room).emit("bye", socket.nickname, countRoom(room)-1);
