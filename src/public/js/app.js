@@ -71,7 +71,6 @@ cameraBtn.addEventListener("click", event => {
 })
 
 async function getMedia() {
-    alert("adsf");
     try {
         myStream = await navigator.mediaDevices.getUserMedia({
             audio: true,
@@ -162,13 +161,6 @@ function handleAddStream(data) {
     peersFace.srcObject = data.stream;
     console.log("got an event from my peer");
 }
-
-
-
-
-
-
-
 
 
 

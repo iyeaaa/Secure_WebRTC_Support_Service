@@ -6,11 +6,14 @@ import express from "express";
 const app = express()
 const path = require('path');
 
-app.set(`view engine`, 'pug');
-app.set('views', path.join(__dirname, 'views'));
+// app.set(`view engine`, 'pug');
+// app.set('views', path.join(__dirname, 'views'));
 
-app.use('/public', express.static(path.join(__dirname, "public")));
-app.get("/", (req, res) => res.render("home"));
+app.use(express.static(path.join(__dirname, "public")));
+// 라우트 설정
+app.get("/", (req, res) => {
+    res.sendFile(path.join(__dirname, "public/", "login.html"));
+});
 app.get("/*", (req, res) => res.redirect("/"));
 
 const handleListen = () => console.log('Listening on http://localhost:3000');
@@ -21,12 +24,12 @@ const users = {
         {email: "sjj2305@naver.com", room: "b"}
     ],
     "cyh1443@gmail.com": [
-        {email: "iyeaaa@naver.com", room: "c"},
+        {email: "iyeaaa@naver.com", room: "a"},
         {email: "sjj2305@naver.com", room: "d"}
     ],
     "sjj2305@naver.com": [
-        {email: "cyh1443@gmail.com", room: "e"},
-        {email: "iyeaaa@naver.com", room: "f"}
+        {email: "cyh1443@gmail.com", room: "d"},
+        {email: "iyeaaa@naver.com", room: "b"}
     ],
 }
 
