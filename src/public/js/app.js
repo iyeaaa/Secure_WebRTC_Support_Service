@@ -100,6 +100,7 @@ socket.on("join", async (nickname) => {
 
 socket.on("offer", async offer => {
     console.log("receive the offer")
+    console.log(offer)
     await myPeerConnection.setRemoteDescription(offer);
     const answer = await myPeerConnection.createAnswer();
     await myPeerConnection.setLocalDescription(answer);
