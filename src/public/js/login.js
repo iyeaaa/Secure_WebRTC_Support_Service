@@ -28,8 +28,6 @@ function login() {
 }
 
 
-
-
 loginForm.addEventListener("submit", event => {
     event.preventDefault()
     login()

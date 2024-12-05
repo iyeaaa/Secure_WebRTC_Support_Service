@@ -17,7 +17,6 @@ const sessionMiddleware = session({
 
 // 미들웨어로 세션 사용
 app.use(sessionMiddleware);
-
 // 정적 파일 제공 및 라우트 설정
 app.use(express.static(path.join(__dirname, "public")));
 app.use(express.json());
@@ -36,6 +35,25 @@ app.get("/remote", (req, res) => {
     }
     res.sendFile(path.join(__dirname, "public/", "remote.html"));
 })
+
+// 로그인 API
+app.post("/login", (req, res) => {
+    const { email, password } = req.body;
+    if (login_info[email] && login_info[email] === password) {
+        // 세션에 사용자 정보 저장
+        req.session.user = { email };
+        res.status(200).json({ message: "success" });
+    } else {
+        res.status(401).json({ message: "fail" });
+    }
+});
+
+// 로그아웃 API
+app.post("/logout", (req, res) => {
+    req.session.destroy(() => {
+        res.redirect("/");
+    });
+});
 
 // 데이터 예시
 const users = {
@@ -59,24 +77,6 @@ const login_info = {
     "sjj2305@naver.com": "123456"
 };
 
-// 로그인 API
-app.post("/login", (req, res) => {
-    const { email, password } = req.body;
-    if (login_info[email] && login_info[email] === password) {
-        // 세션에 사용자 정보 저장
-        req.session.user = { email };
-        res.status(200).json({ message: "success" });
-    } else {
-        res.status(401).json({ message: "fail" });
-    }
-});
-
-// 로그아웃 API
-app.post("/logout", (req, res) => {
-    req.session.destroy(() => {
-        res.redirect("/");
-    });
-});
 
 const httpServer = http.createServer(app);
 
@@ -101,12 +101,11 @@ wsServer.use((socket, next) => {
 wsServer.on("connection", socket => {
     const session = socket.request.session;
     if (!session?.user) {
-        console.log("Unauthorized access to WebSocket");
+        console.log("Unauthorized access to Socket");
         return socket.disconnect();
     }
 
     console.log(`${session.user.email} connected`);
-    socket.emit("update_rooms", getPublicRooms());
 
     socket.onAny(event => console.log(`Socket Event: ${event}`));
 
@@ -114,14 +113,14 @@ wsServer.on("connection", socket => {
         socket.emit("user", JSON.stringify(users[session.user.email]))
     })
 
-    socket.on("join", (roomName, nickname) => {
+    socket.on("join", (roomName) => {
         socket.join(roomName);
-        socket.nickname = nickname;
+        socket.nickname = users[session.user.email];
         socket.to(roomName).emit("join", socket.nickname);
     });
 
-    socket.on("new_message", (msg, roomName) => {
-        wsServer.to(roomName).emit("new_message", `${socket.nickname}: ${msg}`);
+    socket.on("new_message", (msg, time, roomName) => {
+        socket.to(roomName).emit("new_message", msg, time);
     });
 
     socket.on("disconnecting", () => {

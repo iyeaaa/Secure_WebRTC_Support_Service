@@ -31,7 +31,7 @@ logoutBtn.addEventListener("click", (event) => {
 })
 
 // 새 채팅 방 정보를 생성하는 함수
-function createChatRoom(profilePicSrc, username, lastMessage) {
+function createChatRoom(profilePicSrc, username, room) {
     // chat-room div 생성
     const chatRoomDiv = document.createElement('div');
     chatRoomDiv.classList.add('chat-room');
@@ -52,17 +52,17 @@ function createChatRoom(profilePicSrc, username, lastMessage) {
 
     // p 요소 생성 (최근 메시지)
     const lastMessageElement = document.createElement('p');
-    lastMessageElement.textContent = `Room Name: ${lastMessage}`;
+    lastMessageElement.textContent = `Room Name: ${room}`;
 
     // remote-control-btn 버튼 생성
     const remoteControlBtn = document.createElement('button');
     remoteControlBtn.classList.add('remote-control-btn');
     remoteControlBtn.textContent = '원격 제어';
     remoteControlBtn.addEventListener("click", event => {
-        fetch("/remote", {
-            method: "GET"
+        fetch(`/remote`, {
+            method: "GET",
         }).then(() => {
-            window.location.href = "/remote";
+            window.location.href = `/remote?room=${room}`;
         });
     })
 

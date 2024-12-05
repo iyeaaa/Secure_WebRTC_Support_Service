@@ -27,22 +27,16 @@
                 <h3>채팅</h3>
             </header>
             <main class="chat-messages">
-                <div class="message other">
-                    <p>안녕하세요! 문제 설명 드릴게요.</p>
-                    <span class="timestamp">오후 3:15</span>
-                </div>
-                <div class="message mine">
-                    <p>네, 화면 공유 시작할게요.</p>
-                    <span class="timestamp">오후 3:16</span>
-                </div>
             </main>
             <footer class="chat-input">
                 <label for="file-upload" class="file-upload-btn">📎</label>
                 <input type="file" id="file-upload" style="display: none;">
-                <input type="text" placeholder="메시지를 입력하세요">
-                <button>전송</button>
+                <input type="text" placeholder="메시지를 입력하세요" id="text input">
+                <button id="sendbtn">전송</button>
             </footer>
         </div>
     </div>
 </body>
+<script src="/socket.io/socket.io.js"></script>
+<script src="/js/remote.js"></script>
 </html>
