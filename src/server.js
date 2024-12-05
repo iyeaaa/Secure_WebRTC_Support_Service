@@ -119,6 +119,16 @@ wsServer.on("connection", socket => {
         socket.to(roomName).emit("join", socket.nickname);
     });
 
+    socket.on("offer", (offer, roomName) => {
+        socket.to(roomName).emit("offer", offer);
+    })
+    socket.on("answer", (answer, roomName) => {
+        socket.to(roomName).emit("answer", answer);
+    })
+    socket.on("ice", (ice, roomName) => {
+        socket.to(roomName).emit("ice", ice);
+    })
+
     socket.on("new_message", (msg, time, roomName) => {
         socket.to(roomName).emit("new_message", msg, time);
     });
@@ -128,6 +138,9 @@ wsServer.on("connection", socket => {
             socket.to(room).emit("bye", socket.nickname);
         });
     });
+    socket.on("disconnect", () => {
+        wsServer.emit("update_rooms", getPublicRooms());
+    })
 });
 
 const handleListen = () => console.log("Listening on http://localhost:3000");

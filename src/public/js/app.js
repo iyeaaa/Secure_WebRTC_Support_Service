@@ -10,8 +10,7 @@ const chatting = document.getElementById("chatting");
 
 let roomName;
 let nickName;
-let myStream;
-let myPeerConnection;
+
 
 initiate()
 
@@ -75,33 +74,33 @@ cameraBtn.addEventListener("click", event => {
 
 /* Socket On Code */
 
-socket.on("join", async (nickname) => {
-    /* 초대장을 만드는 과정 */
-    const offer = await myPeerConnection.createOffer();
-    await myPeerConnection.setLocalDescription(offer)
-    console.log("sent the offer");
-    socket.emit("offer", offer, roomName);
-})
-
-socket.on("offer", async offer => {
-    console.log("receive the offer")
-    console.log(offer)
-    await myPeerConnection.setRemoteDescription(offer);
-    const answer = await myPeerConnection.createAnswer();
-    await myPeerConnection.setLocalDescription(answer);
-    socket.emit("answer", answer, roomName);
-    console.log("sent the answer");
-})
-
-socket.on("answer", async answer => {
-    console.log("receive the answer");
-    await myPeerConnection.setRemoteDescription(answer);
-})
-
-socket.on("ice", async ice => {
-    console.log("receive the ice from other client");
-    await myPeerConnection.addIceCandidate(ice);
-})
+// socket.on("join", async (nickname) => {
+//     /* 초대장을 만드는 과정 */
+//     const offer = await myPeerConnection.createOffer();
+//     await myPeerConnection.setLocalDescription(offer)
+//     console.log("sent the offer");
+//     socket.emit("offer", offer, roomName);
+// })
+//
+// socket.on("offer", async offer => {
+//     console.log("receive the offer")
+//     console.log(offer)
+//     await myPeerConnection.setRemoteDescription(offer);
+//     const answer = await myPeerConnection.createAnswer();
+//     await myPeerConnection.setLocalDescription(answer);
+//     socket.emit("answer", answer, roomName);
+//     console.log("sent the answer");
+// })
+//
+// socket.on("answer", async answer => {
+//     console.log("receive the answer");
+//     await myPeerConnection.setRemoteDescription(answer);
+// })
+//
+// socket.on("ice", async ice => {
+//     console.log("receive the ice from other client");
+//     await myPeerConnection.addIceCandidate(ice);
+// })
 
 socket.on("new_message", message => {
     console.log("receive the message");
