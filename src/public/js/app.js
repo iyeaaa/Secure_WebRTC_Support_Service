@@ -70,22 +70,7 @@ cameraBtn.addEventListener("click", event => {
     track.enabled = !track.enabled;
 })
 
-async function getMedia() {
-    try {
-        myStream = await navigator.mediaDevices.getUserMedia({
-            audio: true,
-            video: true,
-        });
-        video.srcObject = myStream;
-        video.onloadedmetadata = () => {
-            video.play();
-        };
-    } catch (err) {
-        /* handle the error */
-        console.error(`${err.name}: ${err.message}`);
-        alert(err)
-    }
-}
+
 
 
 /* Socket On Code */
@@ -128,40 +113,7 @@ socket.on("new_message", message => {
 
 
 /* RTC Code */
-function makeConnection() {
-    myPeerConnection = new RTCPeerConnection({
-        iceServers: [
-            {
-                urls: [
-                    "stun:stun.l.google.com:19302",
-                    "stun:stun.l.google.com:5349",
-                    "stun:stun1.l.google.com:3478",
-                    "stun:stun1.l.google.com:5349"
-                ]
-            }
-        ]
-    });
 
-    /*
-        candidate : 소통하는 방식을 설명한다.
-        브라우저에 의해 candidate가 생성된다.
-    */
-    myPeerConnection.addEventListener("icecandidate", handleIce);
-    myPeerConnection.addEventListener("addstream", handleAddStream);
-    myStream.getTracks().forEach(track => myPeerConnection.addTrack(track, myStream));
-}
-
-function handleIce(data) {
-    console.log(`got Ice Candidate from browser : ${data.candidate}`);
-    socket.emit("ice", data.candidate, roomName);
-    console.log(`sent the ice candidate`);
-}
-
-function handleAddStream(data) {
-    const peersFace = document.getElementById("peersFace");
-    peersFace.srcObject = data.stream;
-    console.log("got an event from my peer");
-}
 
 
 

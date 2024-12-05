@@ -7,10 +7,14 @@ const sendBtn = document.getElementById("sendbtn")
 const url = new URL(window.location.href); // 현재 페이지의 전체 URL
 const params = url.searchParams;
 const room = params.get("room")
+const myVideo = document.querySelector(".video-overlay video")
+console.log(myVideo)
 
 if (room == null) {
     alert("Room is Null")
 }
+
+// Socket
 
 socket.emit("join", room)
 
@@ -21,6 +25,66 @@ socket.on("join", nickname => {
 socket.on("new_message", (content, time) => {
     appendMessageToChat(content, time, false)
 })
+
+// Face
+
+getMedia()
+// makeConnection()
+
+async function getMedia() {
+    try {
+        myStream = await navigator.mediaDevices.getUserMedia({
+            audio: true,
+            video: true,
+        });
+        myVideo.srcObject = myStream;
+        myVideo.onloadedmetadata = () => {
+            myVideo.play();
+        };
+    } catch (err) {
+        /* handle the error */
+        console.error(`${err.name}: ${err.message}`);
+        alert(err)
+    }
+}
+
+// function handleIce(data) {
+//     console.log(`got Ice Candidate from browser : ${data.candidate}`);
+//     socket.emit("ice", data.candidate, roomName);
+//     console.log(`sent the ice candidate`);
+// }
+
+// function handleAddStream(data) {
+//     const peersFace = document.getElementById("peersFace");
+//     peersFace.srcObject = data.stream;
+//     console.log("got an event from my peer");
+// }
+//
+// function makeConnection() {
+//     myPeerConnection = new RTCPeerConnection({
+//         iceServers: [
+//             {
+//                 urls: [
+//                     "stun:stun.l.google.com:19302",
+//                     "stun:stun.l.google.com:5349",
+//                     "stun:stun1.l.google.com:3478",
+//                     "stun:stun1.l.google.com:5349"
+//                 ]
+//             }
+//         ]
+//     });
+//
+//     /*
+//         candidate : 소통하는 방식을 설명한다.
+//         브라우저에 의해 candidate가 생성된다.
+//     */
+//     myPeerConnection.addEventListener("icecandidate", handleIce);
+//     myPeerConnection.addEventListener("addstream", handleAddStream);
+//     myStream.getTracks().forEach(track => myPeerConnection.addTrack(track, myStream));
+// }
+
+
+// Chatting
 
 function currentTime() {
     const now = new Date();
