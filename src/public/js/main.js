@@ -1,20 +1,33 @@
 
-const userDataString = sessionStorage.getItem("userData");
-const userData = JSON.parse(userDataString)
+const socket = io()
+const logoutBtn = document.getElementById("logout")
+
+socket.emit("user")
+
+socket.on("user", users_json => {
+    const users = JSON.parse(users_json)
+    users.forEach((value, key) => {
+        const email = value.email
+        const room = value.room
+        createChatRoom(
+            'profile1.jpg',
+            email,
+            room,
+        )
+    })
+})
+
 const chatList = document.querySelector(".chat-list")
 
-userData.forEach((value, key) => {
-
-    const email = value.email
-    const room = value.room
-    console.log(email)
-    console.log(room)
-
-    createChatRoom(
-        'profile1.jpg',
-        email,
-        room,
-    );
+function logout() {
+    fetch("/logout", {
+        method: "POST"
+    }).then(() => {
+        window.location.href = "/";
+    });
+}
+logoutBtn.addEventListener("click", (event) => {
+    logout()
 })
 
 // 새 채팅 방 정보를 생성하는 함수
@@ -45,6 +58,13 @@ function createChatRoom(profilePicSrc, username, lastMessage) {
     const remoteControlBtn = document.createElement('button');
     remoteControlBtn.classList.add('remote-control-btn');
     remoteControlBtn.textContent = '원격 제어';
+    remoteControlBtn.addEventListener("click", event => {
+        fetch("/remote", {
+            method: "GET"
+        }).then(() => {
+            window.location.href = "/remote";
+        });
+    })
 
     // chat-info div에 사용자 이름과 메시지 추가
     chatInfoDiv.appendChild(usernameElement);

@@ -1,0 +1,156 @@
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    font-family: Arial, sans-serif;
+}
+
+body {
+    background-color: #333;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+    color: white;
+}
+
+.remote-control-page {
+    display: flex;
+    width: 100%;
+    max-width: 1000px;
+    height: 90vh;
+    background-color: #222;
+    border-radius: 8px;
+    overflow: hidden;
+}
+
+.remote-control-container {
+    position: relative;
+    width: 70%;
+    background-color: black;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.screen-share {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    color: #aaa;
+    font-size: 1.2em;
+}
+
+.video-overlay {
+    position: absolute;
+    top: 15px;
+    right: 15px;
+    width: 120px;
+    height: 150px;
+    background-color: black;
+    border: 2px solid #4A90E2;
+    border-radius: 8px;
+    overflow: hidden;
+}
+
+.video-overlay video {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.chat-sidebar {
+    width: 40%;
+    background-color: #f7f7f7;
+    color: #333;
+    display: flex;
+    flex-direction: column;
+    border-left: 2px solid #ddd;
+}
+
+.chat-header {
+    background-color: #4A90E2;
+    color: white;
+    padding: 10px;
+    text-align: center;
+}
+
+.chat-messages {
+    flex-grow: 1;
+    padding: 10px;
+    overflow-y: auto;
+}
+
+.message {
+    max-width: 80%;
+    margin-bottom: 15px;
+    padding: 10px;
+    border-radius: 8px;
+    position: relative;
+    font-size: 1em;
+    line-height: 1.4;
+}
+
+.message.other {
+    background-color: #e6e6e6;
+    color: #333;
+    margin-right: auto;
+}
+
+.message.mine {
+    background-color: #4A90E2;
+    color: white;
+    margin-left: auto;
+}
+
+.timestamp {
+    font-size: 0.75em;
+    color: #999;
+    margin-top: 5px;
+    display: block;
+    text-align: right;
+}
+
+.chat-input {
+    display: flex;
+    align-items: center;
+    padding: 10px;
+    border-top: 1px solid #ddd;
+    background-color: #f7f7f7;
+}
+
+.file-upload-btn {
+    font-size: 1.5em;
+    color: #4A90E2;
+    cursor: pointer;
+    margin-right: 10px;
+    flex-shrink: 0; /* 파일 전송 버튼이 줄어들지 않도록 설정 */
+    min-width: 30px; /* 파일 전송 버튼 최소 너비 설정 */
+}
+
+.chat-input input[type="text"] {
+    flex-grow: 1;
+    padding: 10px;
+    border: 1px solid #ddd;
+    border-radius: 5px;
+    font-size: 1em;
+    margin-right: 10px; /* 전송 버튼과의 간격 확보 */
+}
+
+.chat-input button {
+    padding: 10px 15px;
+    background-color: #4A90E2;
+    color: white;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    font-weight: bold;
+    flex-shrink: 0; /* 전송 버튼이 줄어들지 않도록 설정 */
+    min-width: 50px; /* 전송 버튼 최소 너비 설정 */
+}
+
+.chat-input button:hover {
+    background-color: #357ABD;
+}

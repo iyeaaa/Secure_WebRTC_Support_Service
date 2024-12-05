@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Remote Control Service - 원격 제어</title>
+    <link rel="stylesheet" href="/css/remotestyle.css">
+</head>
+<body>
+    <div class="remote-control-page">
+        <!-- 원격 제어 화면 -->
+        <div class="remote-control-container">
+            <div class="screen-share">
+                <p>상대방의 스마트폰 화면 공유 중...</p>
+            </div>
+            
+            <div class="video-overlay">
+                <video autoplay muted>
+                    <source src="face-video.mp4" type="video/mp4">
+                </video>
+            </div>
+        </div>
+
+        <!-- 채팅 영역 -->
+        <div class="chat-sidebar">
+            <header class="chat-header">
+                <h3>채팅</h3>
+            </header>
+            <main class="chat-messages">
+                <div class="message other">
+                    <p>안녕하세요! 문제 설명 드릴게요.</p>
+                    <span class="timestamp">오후 3:15</span>
+                </div>
+                <div class="message mine">
+                    <p>네, 화면 공유 시작할게요.</p>
+                    <span class="timestamp">오후 3:16</span>
+                </div>
+            </main>
+            <footer class="chat-input">
+                <label for="file-upload" class="file-upload-btn">📎</label>
+                <input type="file" id="file-upload" style="display: none;">
+                <input type="text" placeholder="메시지를 입력하세요">
+                <button>전송</button>
+            </footer>
+        </div>
+    </div>
+</body>
+</html>
