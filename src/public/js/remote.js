@@ -8,9 +8,12 @@ const url = new URL(window.location.href); // 현재 페이지의 전체 URL
 const params = url.searchParams;
 const room = params.get("room")
 const myVideo = document.querySelector(".video-overlay video")
+const screenVideo = document.querySelector(".screen-share video")
 
 let myStream;
+let screenStream;
 let myPeerConnection;
+let received = false
 
 if (room == null) {
     alert("Room is Null")
@@ -23,8 +26,10 @@ socket.on("new_message", (content, time) => {
 // Face
 
 getMedia().then(() => {
-    makeConnection()
-    socket.emit("join", room)
+    getScreen().then(() => {
+        makeConnection()
+        socket.emit("join", room)
+    })
 })
 
 
@@ -34,10 +39,7 @@ async function getMedia() {
             audio: true,
             video: true,
         });
-        // myVideo.srcObject = myStream;
-        // myVideo.onloadedmetadata = () => {
-        //     myVideo.play();
-        // };
+        myStream['label'] = 'face'
     } catch (err) {
         /* handle the error */
         console.error(`${err.name}: ${err.message}`);
@@ -45,18 +47,47 @@ async function getMedia() {
     }
 }
 
+// 화면 공유
+async function getScreen() {
+    try {
+        screenStream = await navigator.mediaDevices.getDisplayMedia({
+            video: { displaySurface: "window" },
+            audio: false,
+        });
+    } catch (err) {
+        console.error("Error during screen capture", err);
+    }
+};
+
 function handleIce(data) {
     console.log(`got Ice Candidate from browser : ${data.candidate}`);
     socket.emit("ice", data.candidate, room);
     console.log(`sent the ice candidate`);
 }
 
-function handleAddStream(data) {
-    myVideo.srcObject = data.stream;
-    myVideo.onloadedmetadata = () => {
-        myVideo.play();
-    };
-    console.log("got an event from my peer");
+// async function handleAddStream(data) {
+//     screenVideo.srcObject = data.streams[0];
+//     console.log(myVideo.srcObject)
+//     screenVideo.onloadedmetadata = () => {
+//         myVideo.play();
+//     };
+//     console.log("got an event from my peer");
+// }
+
+// handleAddStream에서 스트림 분리 처리
+async function handleAddStream(event) {
+    const incomingStream = event.streams[0];
+    console.log("Received remote stream:", incomingStream);
+
+    // 화면 공유 스트림과 화상 통신 스트림 구분
+    if (received) {
+        console.log("Attaching screen share stream");
+        screenVideo.srcObject = incomingStream;
+    } else {
+        console.log("Attaching video call stream");
+        myVideo.srcObject = incomingStream;
+        received = true
+    }
 }
 
 function makeConnection() {
@@ -78,8 +109,9 @@ function makeConnection() {
         브라우저에 의해 candidate가 생성된다.
     */
     myPeerConnection.addEventListener("icecandidate", handleIce);
-    myPeerConnection.addEventListener("addstream", handleAddStream);
+    myPeerConnection.addEventListener("track", handleAddStream);
     myStream.getTracks().forEach(track => myPeerConnection.addTrack(track, myStream));
+    screenStream.getTracks().forEach(track => myPeerConnection.addTrack(track, screenStream));
 }
 
 socket.on("join", async (nickname) => {
