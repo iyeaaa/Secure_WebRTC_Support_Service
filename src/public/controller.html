@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Remote Control Service - 원격 제어</title>
+    <link rel="stylesheet" href="/css/controllerstyle.css">
+</head>
+<body>
+<div class="remote-control-page">
+    <!-- 원격 제어 화면 -->
+    <div class="remote-control-container">
+        <div class="screen-share">
+            <video id="screen-share-video" autoplay muted playsinline></video>
+        </div>
+
+        <div class="video-overlay">
+            <video autoplay muted playsinline></video>
+        </div>
+
+        <!-- 화면 공유 제어 버튼 -->
+        <div class="screen-share-controls">
+            <button id="startShareBtn">화면 공유 시작</button>
+            <button id="stopShareBtn" disabled>화면 공유 중지</button>
+        </div>
+    </div>
+
+    <!-- 채팅 영역 -->
+    <div class="chat-sidebar">
+        <header class="chat-header">
+            <h3>채팅</h3>
+        </header>
+        <main class="chat-messages"></main>
+        <footer class="chat-input">
+            <label for="file-upload" class="file-upload-btn">📎</label>
+            <input type="file" id="file-upload" style="display: none;">
+            <input type="text" placeholder="메시지를 입력하세요" id="text input">
+            <button id="sendbtn">전송</button>
+        </footer>
+    </div>
+</div>
+</body>
+<script src="/socket.io/socket.io.js"></script>
+<script src="https://webrtc.github.io/adapter/adapter-latest.js"></script>
+<!-- 컨트롤러 스크립트 -->
+<script src="/js/controller.js"></script>
+</html>

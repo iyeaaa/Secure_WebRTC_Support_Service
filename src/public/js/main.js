@@ -1,4 +1,5 @@
 
+
 const socket = io()
 const logoutBtn = document.getElementById("logout")
 
@@ -46,36 +47,54 @@ function createChatRoom(profilePicSrc, username, room) {
     const chatInfoDiv = document.createElement('div');
     chatInfoDiv.classList.add('chat-info');
 
-    // h3 요소 생성 (사용자 이름)
+    // 사용자 이름
     const usernameElement = document.createElement('h3');
     usernameElement.textContent = username;
 
-    // p 요소 생성 (최근 메시지)
+    // 최근 메시지
     const lastMessageElement = document.createElement('p');
     lastMessageElement.textContent = `Room Name: ${room}`;
 
-    // remote-control-btn 버튼 생성
+    // 원격 제어(하는 쪽) 버튼
     const remoteControlBtn = document.createElement('button');
     remoteControlBtn.classList.add('remote-control-btn');
-    remoteControlBtn.textContent = '원격 제어';
-    remoteControlBtn.addEventListener("click", event => {
-        fetch(`/remote`, {
-            method: "GET",
-        }).then(() => {
-            window.location.href = `/remote?room=${room}`;
-        });
-    })
+    remoteControlBtn.textContent = '원격 제어하기';
+    remoteControlBtn.addEventListener('click', () =>
+        socket.emit("controller", room)
+    );
+
+    // 원격 제어(받는 쪽) 버튼
+    const remoteControlledBtn = document.createElement('button');
+    remoteControlledBtn.classList.add('remote-controlled-btn');
+    remoteControlledBtn.textContent = '원격 제어 받기';
+    remoteControlledBtn.addEventListener('click', () => {
+        socket.emit("receiver", room)
+    });
 
     // chat-info div에 사용자 이름과 메시지 추가
     chatInfoDiv.appendChild(usernameElement);
     chatInfoDiv.appendChild(lastMessageElement);
 
-    // chat-room div에 프로필 사진, 채팅 정보, 버튼 추가
+    // chat-room div에 요소들 추가
     chatRoomDiv.appendChild(profilePic);
     chatRoomDiv.appendChild(chatInfoDiv);
     chatRoomDiv.appendChild(remoteControlBtn);
+    chatRoomDiv.appendChild(remoteControlledBtn);
 
-    // 생성된 chat-room을 body 또는 특정 컨테이너에 추가
-    chatList.appendChild(chatRoomDiv);  // 여기서 'document.body'를 원하는 부모 요소로 변경할 수 있습니다.
+    // 원하는 부모 요소에 chat-room 추가 (예: chatList)
+    chatList.appendChild(chatRoomDiv);
 }
 
+socket.on("controller", (isEntered, roomName) => {
+    if (isEntered)
+        alert("Contoller is already entered")
+    else
+        window.location.href = `/controller?room=${roomName}`
+})
+
+socket.on("receiver", (isEntered, roomName) => {
+    if (isEntered)
+        alert("Receiver is already entered")
+    else
+        window.location.href = `/receiver?room=${roomName}`
+})

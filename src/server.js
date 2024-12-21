@@ -5,6 +5,7 @@ import express from "express";
 import session from "express-session"; // 세션 관리 추가
 import path from "path";
 
+
 const app = express();
 
 // 세션 설정
@@ -22,18 +23,34 @@ app.use(express.static(path.join(__dirname, "public")));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-app.get("/", (req, res) => {
+////////////////////////////////////////////////////////
+
+function ifNotLogin(req, res) {
     if (!req.session.user) {
         return res.redirect("/login.html");
     }
+}
+
+app.get("/", (req, res) => {
+    ifNotLogin(req, res)
     res.sendFile(path.join(__dirname, "public/", "main.html"));
 });
 
-app.get("/remote", (req, res) => {
-    if (!req.session.user) {
-        return res.redirect("/login.html");
+app.get("/controller", (req, res) => {
+    ifNotLogin(req, res)
+    const roomname = req.query.room
+    console.log(isEntered)
+    if (isEntered[roomname].controller) {
+        res.send("Controller is already entered")
+    } else {
+        isEntered[roomname].controller = true
+        res.sendFile(path.join(__dirname, "public/", "controller.html"));
     }
-    res.sendFile(path.join(__dirname, "public/", "remote.html"));
+})
+
+app.get("/receiver", (req, res) => {
+    ifNotLogin(req, res)
+    res.sendFile(path.join(__dirname, "public/", "receiver.html"));
 })
 
 // 로그인 API
@@ -55,6 +72,8 @@ app.post("/logout", (req, res) => {
     });
 });
 
+////////////////////////////////////////////////////////
+
 // 데이터 예시
 const users = {
     "iyeaaa@naver.com": [
@@ -63,10 +82,10 @@ const users = {
     ],
     "cyh1443@gmail.com": [
         { email: "iyeaaa@naver.com", room: "a" },
-        { email: "sjj2305@naver.com", room: "d" }
+        { email: "sjj2305@naver.com", room: "c" }
     ],
     "sjj2305@naver.com": [
-        { email: "cyh1443@gmail.com", room: "d" },
+        { email: "cyh1443@gmail.com", room: "c" },
         { email: "iyeaaa@naver.com", room: "b" }
     ],
 };
@@ -77,7 +96,22 @@ const login_info = {
     "sjj2305@naver.com": "123456"
 };
 
+const isEntered = {
+    "a": {
+        controller: false,
+        reciever: false,
+    },
+    "b": {
+        controller: false,
+        reciever: false,
+    },
+    "c": {
+        controller: false,
+        reciever: false,
+    }
+}
 
+console.log(isEntered)
 const httpServer = http.createServer(app);
 
 // Socket.IO와 세션 공유
@@ -91,6 +125,8 @@ const wsServer = new Server(httpServer, {
 instrument(wsServer, {
     auth: false
 });
+
+////////////////////////////////////////////////////////
 
 // 세션을 Socket.IO에 통합
 wsServer.use((socket, next) => {
@@ -113,10 +149,20 @@ wsServer.on("connection", socket => {
         socket.emit("user", JSON.stringify(users[session.user.email]))
     })
 
-    socket.on("join", (roomName) => {
+    socket.on("controller", (roomName) => {
+        socket.emit("controller", isEntered[roomName].controller, roomName)
+    })
+
+    socket.on("receiver", (roomName) => {
+        socket.emit("receiver", isEntered[roomName].receiver, roomName)
+    })
+
+    socket.on("join", (roomName, isController) => {
         socket.join(roomName);
-        socket.nickname = users[session.user.email];
-        socket.to(roomName).emit("join", socket.nickname);
+        if (isController && isEntered[roomName].controller)
+            socket.emit("isAlreadyEntered")
+        else
+            socket.to(roomName).emit("join", socket.nickname);
     });
 
     socket.on("offer", (offer, roomName) => {
@@ -142,6 +188,8 @@ wsServer.on("connection", socket => {
         wsServer.emit("update_rooms", getPublicRooms());
     })
 });
+
+////////////////////////////////////////////////////////
 
 const handleListen = () => console.log("Listening on http://localhost:3000");
 httpServer.listen(3000, handleListen);

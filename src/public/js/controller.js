@@ -1,4 +1,5 @@
 
+
 const socket = io()
 
 const input = document.getElementById("text input")
@@ -12,26 +13,41 @@ const screenVideo = document.querySelector(".screen-share video")
 
 let myStream;
 let screenStream;
-let myPeerConnection;
-let received = false
+let screenPeerConnection;
 
 if (room == null) {
     alert("Room is Null")
 }
 
-socket.on("new_message", (content, time) => {
-    appendMessageToChat(content, time, false)
-})
+////////////////////////////////////////////////////////
 
-// Face
+function init(event) {
+    console.log("dafds")
+    getScreen()
+        .then(() => {
+            makeConnection()
+            socket.emit("join", room, true)
+        })
+}
 
-getMedia().then(() => {
-    getScreen().then(() => {
-        makeConnection()
-        socket.emit("join", room)
-    })
-})
+function close(event) {
+    screenStream = null
+    screenPeerConnection.close()
+    screenPeerConnection = null
+    startShareButton.disabled = false
+    stopShareButton.disabled = true
+}
 
+const startShareButton = document.querySelector(".screen-share-controls #startShareBtn")
+const stopShareButton = document.querySelector(".screen-share-controls #stopShareBtn")
+
+startShareButton.disabled = false
+stopShareButton.disabled = true
+
+startShareButton.addEventListener("click", init)
+stopShareButton.addEventListener("click", close)
+
+////////////////////////////////////////////////////////
 
 async function getMedia() {
     try {
@@ -39,7 +55,8 @@ async function getMedia() {
             audio: true,
             video: true,
         });
-        myStream['label'] = 'face'
+        startShareButton.disabled = true
+        stopShareButton.disabled = false
     } catch (err) {
         /* handle the error */
         console.error(`${err.name}: ${err.message}`);
@@ -51,13 +68,27 @@ async function getMedia() {
 async function getScreen() {
     try {
         screenStream = await navigator.mediaDevices.getDisplayMedia({
-            video: { displaySurface: "window" },
-            audio: false,
+            video: {
+                displaySurface: "window",
+            },
+            audio: {
+                suppressLocalAudioPlayback: false,
+            },
+            preferCurrentTab: false,
+            selfBrowserSurface: "exclude",
+            systemAudio: "include",
+            surfaceSwitching: "include",
+            monitorTypeSurfaces: "include",
         });
+        startShareButton.disabled = true
+        stopShareButton.disabled = false
     } catch (err) {
         console.error("Error during screen capture", err);
     }
-};
+}
+
+/* RTC 연결 */
+////////////////////////////////////////////////////////
 
 function handleIce(data) {
     console.log(`got Ice Candidate from browser : ${data.candidate}`);
@@ -65,33 +96,17 @@ function handleIce(data) {
     console.log(`sent the ice candidate`);
 }
 
-// async function handleAddStream(data) {
-//     screenVideo.srcObject = data.streams[0];
-//     console.log(myVideo.srcObject)
-//     screenVideo.onloadedmetadata = () => {
-//         myVideo.play();
-//     };
-//     console.log("got an event from my peer");
-// }
-
 // handleAddStream에서 스트림 분리 처리
 async function handleAddStream(event) {
     const incomingStream = event.streams[0];
     console.log("Received remote stream:", incomingStream);
 
-    // 화면 공유 스트림과 화상 통신 스트림 구분
-    if (received) {
-        console.log("Attaching screen share stream");
-        screenVideo.srcObject = incomingStream;
-    } else {
-        console.log("Attaching video call stream");
-        myVideo.srcObject = incomingStream;
-        received = true
-    }
+    console.log("Attaching screen share stream");
+    screenVideo.srcObject = incomingStream;
 }
 
 function makeConnection() {
-    myPeerConnection = new RTCPeerConnection({
+    screenPeerConnection = new RTCPeerConnection({
         iceServers: [
             {
                 urls: [
@@ -108,40 +123,53 @@ function makeConnection() {
         candidate : 소통하는 방식을 설명한다.
         브라우저에 의해 candidate가 생성된다.
     */
-    myPeerConnection.addEventListener("icecandidate", handleIce);
-    myPeerConnection.addEventListener("track", handleAddStream);
-    myStream.getTracks().forEach(track => myPeerConnection.addTrack(track, myStream));
-    screenStream.getTracks().forEach(track => myPeerConnection.addTrack(track, screenStream));
+    screenPeerConnection.addEventListener("icecandidate", handleIce);
+    screenPeerConnection.addEventListener("track", handleAddStream);
+    // myStream.getTracks().forEach(track => myPeerConnection.addTrack(track, myStream));
+    if (screenStream)
+        screenStream.getTracks().forEach(track => screenPeerConnection.addTrack(track, screenStream));
 }
+
+
+////////////////////////////////////////////////////////
+/* Socket ON */
+
+socket.on("new_message", (content, time) => {
+    appendMessageToChat(content, time, false)
+})
 
 socket.on("join", async (nickname) => {
     /* 초대장을 만드는 과정 */
-    const offer = await myPeerConnection.createOffer();
-    await myPeerConnection.setLocalDescription(offer)
+    const offer = await screenPeerConnection.createOffer();
+    await screenPeerConnection.setLocalDescription(offer)
     console.log("sent the offer");
     socket.emit("offer", offer, room);
 })
 
+socket.on("isAlreadyEntered", () => {
+
+})
+
 socket.on("offer", async offer => {
     console.log("receive the offer")
-    console.log(offer)
-    await myPeerConnection.setRemoteDescription(offer);
-    const answer = await myPeerConnection.createAnswer();
-    await myPeerConnection.setLocalDescription(answer);
+    await screenPeerConnection.setRemoteDescription(offer);
+    const answer = await screenPeerConnection.createAnswer();
+    await screenPeerConnection.setLocalDescription(answer);
     socket.emit("answer", answer, room);
     console.log("sent the answer");
 })
 
 socket.on("answer", async answer => {
     console.log("receive the answer");
-    await myPeerConnection.setRemoteDescription(answer);
+    await screenPeerConnection.setRemoteDescription(answer);
 })
 
 socket.on("ice", async ice => {
     console.log("receive the ice from other client");
-    await myPeerConnection.addIceCandidate(ice);
+    await screenPeerConnection.addIceCandidate(ice);
 })
 
+////////////////////////////////////////////////////////
 // Chatting
 
 function currentTime() {
@@ -201,3 +229,9 @@ function appendMessageToChat(content, timestamp, isMine = false) {
     // Scroll to the bottom of the chat
     chatMessagesContainer.scrollTop = chatMessagesContainer.scrollHeight;
 }
+
+/* 뒤로가기 버튼 눌렀을 떄 */
+
+window.addEventListener("popstate", function(event) {
+    alert("뒤로가기 버튼이 클릭되었습니다!");
+});

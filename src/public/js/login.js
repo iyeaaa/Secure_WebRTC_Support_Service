@@ -1,5 +1,4 @@
 
-const socket = io();
 
 const loginForm = document.querySelector("form");
 
@@ -33,11 +32,3 @@ loginForm.addEventListener("submit", event => {
     login()
 })
 
-socket.on("login", (email, message) => {
-    if (message === "fail") {
-        alert("로그인 실패")
-    } else {
-        sessionStorage.setItem("userData", JSON.stringify(message));
-        window.location.href = "/main.html";
-    }
-})
