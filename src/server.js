@@ -48,6 +48,11 @@ app.get("/controller", (req, res) => {
     }
 })
 
+app.get("/user", (req, res) => {
+    ifNotLogin(req, res)
+    res.send(JSON.stringify(users[req.session.user.email]))
+})
+
 app.get("/receiver", (req, res) => {
     ifNotLogin(req, res)
     res.sendFile(path.join(__dirname, "public/", "receiver.html"));
@@ -108,7 +113,7 @@ const isEntered = {
     "c": {
         controller: false,
         reciever: false,
-    }
+    },
 }
 
 console.log(isEntered)

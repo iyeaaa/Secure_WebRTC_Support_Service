@@ -1,22 +1,29 @@
 
 
-const socket = io()
 const logoutBtn = document.getElementById("logout")
 
-socket.emit("user")
-
-socket.on("user", users_json => {
-    const users = JSON.parse(users_json)
-    users.forEach((value, key) => {
-        const email = value.email
-        const room = value.room
-        createChatRoom(
-            'profile1.jpg',
-            email,
-            room,
-        )
+fetch(`/user`)
+    .then(response => {
+        if (!response.ok) {
+            throw new Error(`HTTP error! Status: ${response.status}`);
+        }
+        return response.json(); // JSON 데이터를 반환
     })
-})
+    .then(users => {
+        users.forEach((value, key) => {
+            const email = value.email
+            const room = value.room
+            createChatRoom(
+                'profile1.jpg',
+                email,
+                room,
+            )
+        })
+    })
+    .catch(error => {
+        console.error('Fetch error:', error); // 에러 처리
+    });
+
 
 const chatList = document.querySelector(".chat-list")
 
@@ -84,17 +91,3 @@ function createChatRoom(profilePicSrc, username, room) {
     // 원하는 부모 요소에 chat-room 추가 (예: chatList)
     chatList.appendChild(chatRoomDiv);
 }
-
-socket.on("controller", (isEntered, roomName) => {
-    if (isEntered)
-        alert("Contoller is already entered")
-    else
-        window.location.href = `/controller?room=${roomName}`
-})
-
-socket.on("receiver", (isEntered, roomName) => {
-    if (isEntered)
-        alert("Receiver is already entered")
-    else
-        window.location.href = `/receiver?room=${roomName}`
-})
