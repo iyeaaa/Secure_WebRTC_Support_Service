@@ -8,6 +8,8 @@ import path from "path";
 
 const app = express();
 
+/* Session 설정 */
+
 // 세션 설정
 const sessionMiddleware = session({
     secret: "your_secret_key", // 반드시 강력한 비밀 키 사용
@@ -23,61 +25,7 @@ app.use(express.static(path.join(__dirname, "public")));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-////////////////////////////////////////////////////////
-
-function ifNotLogin(req, res) {
-    if (!req.session.user) {
-        return res.redirect("/login.html");
-    }
-}
-
-app.get("/", (req, res) => {
-    ifNotLogin(req, res)
-    res.sendFile(path.join(__dirname, "public/", "main.html"));
-});
-
-app.get("/controller", (req, res) => {
-    ifNotLogin(req, res)
-    const roomname = req.query.room
-    console.log(isEntered)
-    if (isEntered[roomname].controller) {
-        res.send("Controller is already entered")
-    } else {
-        isEntered[roomname].controller = true
-        res.sendFile(path.join(__dirname, "public/", "controller.html"));
-    }
-})
-
-app.get("/user", (req, res) => {
-    ifNotLogin(req, res)
-    res.send(JSON.stringify(users[req.session.user.email]))
-})
-
-app.get("/receiver", (req, res) => {
-    ifNotLogin(req, res)
-    res.sendFile(path.join(__dirname, "public/", "receiver.html"));
-})
-
-// 로그인 API
-app.post("/login", (req, res) => {
-    const { email, password } = req.body;
-    if (login_info[email] && login_info[email] === password) {
-        // 세션에 사용자 정보 저장
-        req.session.user = { email };
-        res.status(200).json({ message: "success" });
-    } else {
-        res.status(401).json({ message: "fail" });
-    }
-});
-
-// 로그아웃 API
-app.post("/logout", (req, res) => {
-    req.session.destroy(() => {
-        res.redirect("/");
-    });
-});
-
-////////////////////////////////////////////////////////
+/* Database */
 
 // 데이터 예시
 const users = {
@@ -101,23 +49,74 @@ const login_info = {
     "sjj2305@naver.com": "123456"
 };
 
-const isEntered = {
-    "a": {
-        controller: false,
-        reciever: false,
-    },
-    "b": {
-        controller: false,
-        reciever: false,
-    },
-    "c": {
-        controller: false,
-        reciever: false,
-    },
+// const isEntered = {
+//     "a": {
+//         controller: false,
+//         reciever: false,
+//     },
+//     "b": {
+//         controller: false,
+//         reciever: false,
+//     },
+//     "c": {
+//         controller: false,
+//         reciever: false,
+//     },
+// }
+//
+
+
+/* HTTP 서버 설정 */
+
+function ifNotLogin(req, res) {
+    if (!req.session.user) {
+        return res.redirect("/login.html");
+    }
 }
 
-console.log(isEntered)
+app.get("/", (req, res) => {
+    ifNotLogin(req, res)
+    res.sendFile(path.join(__dirname, "public/", "main.html"));
+});
+
+app.get("/user", (req, res) => {
+    ifNotLogin(req, res)
+    res.send(JSON.stringify(users[req.session.user.email]))
+})
+
+app.get("/controller", (req, res) => {
+    ifNotLogin(req, res)
+    const roomname = req.query.room
+    res.sendFile(path.join(__dirname, "public/", "controller.html"));
+})
+
+app.get("/receiver", (req, res) => {
+    ifNotLogin(req, res)
+    res.sendFile(path.join(__dirname, "public/", "receiver.html"));
+})
+
+app.post("/login", (req, res) => {
+    const { email, password } = req.body;
+    if (login_info[email] && login_info[email] === password) {
+        // 세션에 사용자 정보 저장
+        req.session.user = { email };
+        res.status(200).json({ message: "success" });
+    } else {
+        res.status(401).json({ message: "fail" });
+    }
+});
+
+app.post("/logout", (req, res) => {
+    req.session.destroy(() => {
+        res.redirect("/");
+    });
+});
+
 const httpServer = http.createServer(app);
+
+
+
+/* Socket.io 서버 설정 */
 
 // Socket.IO와 세션 공유
 const wsServer = new Server(httpServer, {
@@ -131,14 +130,10 @@ instrument(wsServer, {
     auth: false
 });
 
-////////////////////////////////////////////////////////
-
 // 세션을 Socket.IO에 통합
-wsServer.use((socket, next) => {
-    sessionMiddleware(socket.request, socket.request.res || {}, next);
-});
+wsServer.use((socket, next) =>
+    sessionMiddleware(socket.request, socket.request.res || {}, next))
 
-// WebSocket 이벤트 처리
 wsServer.on("connection", socket => {
     const session = socket.request.session;
     if (!session?.user) {
@@ -149,18 +144,6 @@ wsServer.on("connection", socket => {
     console.log(`${session.user.email} connected`);
 
     socket.onAny(event => console.log(`Socket Event: ${event}`));
-
-    socket.on("user", () => {
-        socket.emit("user", JSON.stringify(users[session.user.email]))
-    })
-
-    socket.on("controller", (roomName) => {
-        socket.emit("controller", isEntered[roomName].controller, roomName)
-    })
-
-    socket.on("receiver", (roomName) => {
-        socket.emit("receiver", isEntered[roomName].receiver, roomName)
-    })
 
     socket.on("join", (roomName, isController) => {
         socket.join(roomName);
@@ -199,7 +182,8 @@ wsServer.on("connection", socket => {
 const handleListen = () => console.log("Listening on http://localhost:3000");
 httpServer.listen(3000, handleListen);
 
-// Helper functions
+
+/* ETC Helper*/
 function getPublicRooms() {
     const { rooms, sids } = wsServer.sockets.adapter;
     return [...rooms.keys()].filter(room => !sids.has(room));
