@@ -21,7 +21,7 @@ if (room == null) {
     alert("Room is Null")
 }
 
-////////////////////////////////////////////////////////
+
 
 function init() {
     console.log("dafds")
@@ -154,7 +154,18 @@ function setDataChannel() {
 }
 
 function handleSendChannelStatusChange(event) {
+    if (sendChannel) {
+        const state = sendChannel.readyState;
 
+        if (state === "open") {
+            input.disabled = false;
+            input.focus();
+            sendMessageButton.disabled = false;
+        } else {
+            input.disabled = true;
+            sendMessageButton.disabled = true;
+        }
+    }
 }
 
 function handleReceiveChannelStatusChange(event) {

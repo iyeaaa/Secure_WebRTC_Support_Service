@@ -3,7 +3,7 @@
 const socket = io()
 
 const input = document.getElementById("text input")
-const sendBtn = document.getElementById("sendbtn")
+const sendMessageButton = document.getElementById("sendbtn")
 
 const url = new URL(window.location.href); // 현재 페이지의 전체 URL
 const params = url.searchParams;
@@ -13,7 +13,9 @@ const screenVideo = document.querySelector(".screen-share video")
 
 let myStream;
 let screenStream;
-let screenPeerConnection;
+let peerConnection;
+let sendChannel;
+let receiveChannel;
 
 if (room == null) {
     alert("Room is Null")
@@ -21,22 +23,14 @@ if (room == null) {
 
 makeConnection()
 socket.emit("join", room)
+
 function close(event) {
     screenStream = null
-    screenPeerConnection.close()
-    screenPeerConnection = null
+    peerConnection.close()
+    peerConnection = null
     startShareButton.disabled = false
     stopShareButton.disabled = true
 }
-//
-// const startShareButton = document.querySelector(".screen-share-controls #startShareBtn")
-// const stopShareButton = document.querySelector(".screen-share-controls #stopShareBtn")
-//
-// startShareButton.disabled = false
-// stopShareButton.disabled = true
-//
-// startShareButton.addEventListener("click", init)
-// stopShareButton.addEventListener("click", close)
 
 async function getMedia() {
     try {
@@ -72,7 +66,7 @@ async function handleAddStream(event) {
 }
 
 function makeConnection() {
-    screenPeerConnection = new RTCPeerConnection({
+    peerConnection = new RTCPeerConnection({
         iceServers: [
             {
                 urls: [
@@ -85,51 +79,57 @@ function makeConnection() {
         ]
     });
 
+    setDataChannel()
+
     /*
         candidate : 소통하는 방식을 설명한다.
         브라우저에 의해 candidate가 생성된다.
     */
-    screenPeerConnection.addEventListener("icecandidate", handleIce);
-    screenPeerConnection.addEventListener("track", handleAddStream);
+    peerConnection.addEventListener("icecandidate", handleIce);
+    peerConnection.addEventListener("track", handleAddStream);
+
 }
 
+/* Data Channel 설정 */
 
-////////////////////////////////////////////////////////
-/* Socket ON */
+function setDataChannel() {
+    // sendChannel 설정
+    sendChannel = peerConnection.createDataChannel("sendChannel")
+    sendChannel.onopen = handleSendChannelStatusChange;
+    sendChannel.onclose = handleSendChannelStatusChange;
 
-socket.on("new_message", (content, time) => {
-    appendMessageToChat(content, time, false)
-})
+    // receiveChannel 설정
+    peerConnection.ondatachannel = (event) => {
+        receiveChannel = event.channel;
+        receiveChannel.onmessage = handleReceiveMessage;
+        receiveChannel.onopen = handleReceiveChannelStatusChange;
+        receiveChannel.onclose = handleReceiveChannelStatusChange;
+    };
+}
 
-socket.on("join", async (nickname) => {
-    /* 초대장을 만드는 과정 */
-    const offer = await screenPeerConnection.createOffer();
-    await screenPeerConnection.setLocalDescription(offer)
-    console.log("sent the offer");
-    socket.emit("offer", offer, room);
-})
+function handleSendChannelStatusChange(event) {
+    if (sendChannel) {
+        const state = sendChannel.readyState;
 
-socket.on("offer", async offer => {
-    console.log("receive the offer")
-    await screenPeerConnection.setRemoteDescription(offer);
-    const answer = await screenPeerConnection.createAnswer();
-    await screenPeerConnection.setLocalDescription(answer);
-    socket.emit("answer", answer, room);
-    console.log("sent the answer");
-})
+        if (state === "open") {
+            input.disabled = false;
+            input.focus();
+            sendMessageButton.disabled = false;
+        } else {
+            input.disabled = true;
+            sendMessageButton.disabled = true;
+        }
+    }
+}
 
-socket.on("answer", async answer => {
-    console.log("receive the answer");
-    await screenPeerConnection.setRemoteDescription(answer);
-})
+function handleReceiveChannelStatusChange(event) {
+    if (receiveChannel) {
+        console.log("Receive channel's status has changed to " +
+            receiveChannel.readyState);
+    }
+}
 
-socket.on("ice", async ice => {
-    console.log("receive the ice from other client");
-    await screenPeerConnection.addIceCandidate(ice);
-})
-
-////////////////////////////////////////////////////////
-// Chatting
+/* Setting Chat */
 
 function currentTime() {
     const now = new Date();
@@ -138,15 +138,22 @@ function currentTime() {
     return `${hours > 12 ? '오후' : '오전'} ${hours % 12 || 12}:${minutes.toString().padStart(2, '0')}`
 }
 
-function sendMessage(content, time) {
-    socket.emit("new_message", content, time, room)
-}
-sendBtn.addEventListener("click", event => {
+sendMessageButton.addEventListener("click", event => {
     const currenttime = currentTime()
-    appendMessageToChat(input.value, currenttime, true)
-    sendMessage(input.value, currenttime)
+    let message = input.value;
+
+    sendChannel.send(message);
+    appendMessageToChat(message, currenttime, true)
+
     input.value = ""
+    input.focus();
 })
+
+function handleReceiveMessage(event) {
+    let message = event.data
+    let time = event.timeStamp
+    appendMessageToChat(message, time, false)
+}
 
 function createMessageElement(content, timestamp, isMine = false) {
     // Create the main container div
@@ -189,8 +196,31 @@ function appendMessageToChat(content, timestamp, isMine = false) {
     chatMessagesContainer.scrollTop = chatMessagesContainer.scrollHeight;
 }
 
-/* 뒤로가기 버튼 눌렀을 떄 */
+/* Socket ON */
 
-window.addEventListener("popstate", function(event) {
-    alert("뒤로가기 버튼이 클릭되었습니다!");
-});
+socket.on("join", async (nickname) => {
+    /* 초대장을 만드는 과정 */
+    const offer = await peerConnection.createOffer();
+    await peerConnection.setLocalDescription(offer)
+    console.log("sent the offer");
+    socket.emit("offer", offer, room);
+})
+
+socket.on("offer", async offer => {
+    console.log("receive the offer")
+    await peerConnection.setRemoteDescription(offer);
+    const answer = await peerConnection.createAnswer();
+    await peerConnection.setLocalDescription(answer);
+    socket.emit("answer", answer, room);
+    console.log("sent the answer");
+})
+
+socket.on("answer", async answer => {
+    console.log("receive the answer");
+    await peerConnection.setRemoteDescription(answer);
+})
+
+socket.on("ice", async ice => {
+    console.log("receive the ice from other client");
+    await peerConnection.addIceCandidate(ice);
+})
