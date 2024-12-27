@@ -19,17 +19,8 @@ if (room == null) {
     alert("Room is Null")
 }
 
-////////////////////////////////////////////////////////
-
-function init(event) {
-    console.log("dafds")
-    getScreen()
-        .then(() => {
-            makeConnection()
-            socket.emit("join", room, true)
-        })
-}
-
+makeConnection()
+socket.emit("join", room)
 function close(event) {
     screenStream = null
     screenPeerConnection.close()
@@ -37,17 +28,15 @@ function close(event) {
     startShareButton.disabled = false
     stopShareButton.disabled = true
 }
-
-const startShareButton = document.querySelector(".screen-share-controls #startShareBtn")
-const stopShareButton = document.querySelector(".screen-share-controls #stopShareBtn")
-
-startShareButton.disabled = false
-stopShareButton.disabled = true
-
-startShareButton.addEventListener("click", init)
-stopShareButton.addEventListener("click", close)
-
-////////////////////////////////////////////////////////
+//
+// const startShareButton = document.querySelector(".screen-share-controls #startShareBtn")
+// const stopShareButton = document.querySelector(".screen-share-controls #stopShareBtn")
+//
+// startShareButton.disabled = false
+// stopShareButton.disabled = true
+//
+// startShareButton.addEventListener("click", init)
+// stopShareButton.addEventListener("click", close)
 
 async function getMedia() {
     try {
@@ -64,31 +53,8 @@ async function getMedia() {
     }
 }
 
-// 화면 공유
-async function getScreen() {
-    try {
-        screenStream = await navigator.mediaDevices.getDisplayMedia({
-            video: {
-                displaySurface: "window",
-            },
-            audio: {
-                suppressLocalAudioPlayback: false,
-            },
-            preferCurrentTab: false,
-            selfBrowserSurface: "exclude",
-            systemAudio: "include",
-            surfaceSwitching: "include",
-            monitorTypeSurfaces: "include",
-        });
-        startShareButton.disabled = true
-        stopShareButton.disabled = false
-    } catch (err) {
-        console.error("Error during screen capture", err);
-    }
-}
 
 /* RTC 연결 */
-////////////////////////////////////////////////////////
 
 function handleIce(data) {
     console.log(`got Ice Candidate from browser : ${data.candidate}`);
@@ -125,9 +91,6 @@ function makeConnection() {
     */
     screenPeerConnection.addEventListener("icecandidate", handleIce);
     screenPeerConnection.addEventListener("track", handleAddStream);
-    // myStream.getTracks().forEach(track => myPeerConnection.addTrack(track, myStream));
-    if (screenStream)
-        screenStream.getTracks().forEach(track => screenPeerConnection.addTrack(track, screenStream));
 }
 
 
@@ -144,10 +107,6 @@ socket.on("join", async (nickname) => {
     await screenPeerConnection.setLocalDescription(offer)
     console.log("sent the offer");
     socket.emit("offer", offer, room);
-})
-
-socket.on("isAlreadyEntered", () => {
-
 })
 
 socket.on("offer", async offer => {

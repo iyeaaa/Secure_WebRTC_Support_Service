@@ -145,12 +145,10 @@ wsServer.on("connection", socket => {
 
     socket.onAny(event => console.log(`Socket Event: ${event}`));
 
-    socket.on("join", (roomName, isController) => {
-        socket.join(roomName);
-        if (isController && isEntered[roomName].controller)
-            socket.emit("isAlreadyEntered")
-        else
-            socket.to(roomName).emit("join", socket.nickname);
+    socket.on("join", (roomName) => {
+        socket.join(roomName)
+        socket.to(roomName).emit("join", socket.nickname);
+        console.log(getPublicRooms())
     });
 
     socket.on("offer", (offer, roomName) => {
