@@ -100,7 +100,7 @@ app.post("/login", (req, res) => {
     if (login_info[email] && login_info[email] === password) {
         // 세션에 사용자 정보 저장
         req.session.user = { email };
-        res.status(200).json({ message: "success" });
+        res.status(200).json({ message: "success", sid: session.sid });
     } else {
         res.status(401).json({ message: "fail" });
     }
