@@ -21,8 +21,6 @@ if (room == null) {
     alert("Room is Null")
 }
 
-
-
 function init() {
     console.log("dafds")
     getScreen()
@@ -88,6 +86,8 @@ async function getScreen() {
         startShareButton.disabled = true
         stopShareButton.disabled = false
         screenVideo.srcObject = screenStream
+        console.log(screenStream)
+        console.log(screenStream.getTracks())
     } catch (err) {
         console.error("Error during screen capture", err);
     }
