@@ -49,7 +49,7 @@ startShareButton.disabled = false
 stopShareButton.disabled = true
 
 startShareButton.addEventListener("click", init)
-stopShareButton.addEventListener("click", close)
+// stopShareButton.addEventListener("click", close)
 
 ////////////////////////////////////////////////////////
 
@@ -199,15 +199,14 @@ function handleReceiveChannelStatusChange(event) {
 
 /* Setting Chat */
 
-function currentTime() {
-    const now = new Date();
-    const hours = now.getHours(); // 0~23 (24시간 형식)
-    const minutes = now.getMinutes(); // 0~59
+function timestamp2date(timestamp) {
+    const hours = timestamp.getHours(); // 0~23 (24시간 형식)
+    const minutes = timestamp.getMinutes(); // 0~59
     return `${hours > 12 ? '오후' : '오전'} ${hours % 12 || 12}:${minutes.toString().padStart(2, '0')}`
 }
 
 sendMessageButton.addEventListener("click", event => {
-    const currenttime = currentTime()
+    const currenttime = timestamp2date(new Date())
     let message = input.value;
 
     sendChannel.send(message);
@@ -220,7 +219,7 @@ sendMessageButton.addEventListener("click", event => {
 function handleReceiveMessage(event) {
     let message = event.data
     let time = event.timeStamp
-    appendMessageToChat(message, time, false)
+    appendMessageToChat(message, timestamp2date(new Date(time * 1000)), false)
 }
 
 function createMessageElement(content, timestamp, isMine = false) {
