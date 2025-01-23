@@ -13,6 +13,7 @@ const screenVideo = document.querySelector(".screen-share video")
 
 let myStream;
 let screenStream;
+let screenPeerconnection;
 let peerConnection;
 let sendChannel;
 let receiveChannel;
@@ -95,21 +96,35 @@ async function getScreen() {
 
 /* RTC 연결 */
 
-function handleIce(data) {
-    console.log(`got Ice Candidate from browser : ${data.candidate}`);
-    socket.emit("ice", data.candidate, room);
-    console.log(`sent the ice candidate`);
-}
+// function handleIce(data) {
+//     console.log(`got Ice Candidate from browser : ${data.candidate}`);
+//     socket.emit("ice", data.candidate, room);
+//     console.log(`sent the ice candidate`);
+// }
 
 // handleAddStream에서 스트림 분리 처리
 async function handleAddStream(event) {
     const incomingStream = event.streams[0];
     console.log("Received remote stream:", incomingStream);
-
+    myVideo.srcObject = incomingStream
     console.log("Attaching screen share stream");
 }
 
 function makeConnection() {
+    screenPeerconnection = new RTCPeerConnection({
+        iceServers: [
+            {
+                urls: [
+                    "stun:stun.l.google.com:19302",
+                    "stun:stun.l.google.com:5349",
+                    "stun:stun1.l.google.com:3478",
+                    "stun:stun1.l.google.com:5349"
+                ]
+            }
+        ]
+    });
+
+
     peerConnection = new RTCPeerConnection({
         iceServers: [
             {
@@ -129,11 +144,18 @@ function makeConnection() {
         candidate : 소통하는 방식을 설명한다.
         브라우저에 의해 candidate가 생성된다.
     */
-    peerConnection.addEventListener("icecandidate", handleIce);
-    peerConnection.addEventListener("track", handleAddStream);
+    screenPeerconnection.addEventListener("icecandidate", (data) => {
+        socket.emit("ice", data.candidate, room, 0);
+    });
+    screenPeerconnection.addEventListener("track", handleAddStream);
+
+    peerConnection.addEventListener("icecandidate", (data) => {
+        socket.emit("ice", data.candidate, room, 1);
+    });
+
     // myStream.getTracks().forEach(track => myPeerConnection.addTrack(track, myStream));
     if (screenStream)
-        screenStream.getTracks().forEach(track => peerConnection.addTrack(track, screenStream));
+        screenStream.getTracks().forEach(track => screenPeerconnection.addTrack(track, screenStream));
 }
 
 /* Data Channel 설정 */
@@ -247,27 +269,45 @@ function appendMessageToChat(content, timestamp, isMine = false) {
 socket.on("join", async (nickname) => {
     /* 초대장을 만드는 과정 */
     console.log("recieved join")
+
     const offer = await peerConnection.createOffer();
     await peerConnection.setLocalDescription(offer)
+
+    const offer2 = await screenPeerconnection.createOffer();
+    await screenPeerconnection.setLocalDescription(offer2)
+
     console.log("sent the offer");
-    socket.emit("offer", offer, room);
+    socket.emit("offer", offer, offer2, room);
 })
 
-socket.on("offer", async offer => {
+socket.on("offer", async (offer1, offer2) => {
     console.log("receive the offer")
-    await peerConnection.setRemoteDescription(offer);
-    const answer = await peerConnection.createAnswer();
-    await peerConnection.setLocalDescription(answer);
-    socket.emit("answer", answer, room);
+
+    await peerConnection.setRemoteDescription(offer1);
+    const answer1 = await peerConnection.createAnswer();
+    await peerConnection.setLocalDescription(answer1);
+
+    await screenPeerconnection.setRemoteDescription(offer2);
+    const answer2 = await screenPeerconnection.createAnswer();
+    await screenPeerconnection.setLocalDescription(answer2);
+
+    socket.emit("answer", answer1, answer2, room);
     console.log("sent the answer");
 })
 
-socket.on("answer", async answer => {
+socket.on("answer", async (answer1, answer2) => {
     console.log("receive the answer");
-    await peerConnection.setRemoteDescription(answer);
+    await peerConnection.setRemoteDescription(answer1);
+    await screenPeerconnection.setRemoteDescription(answer2)
 })
 
-socket.on("ice", async ice => {
+socket.on("ice", async (ice, num) => {
     console.log("receive the ice from other client");
-    await peerConnection.addIceCandidate(ice);
+
+    if (num === 1) {
+        await peerConnection.addIceCandidate(ice);
+    }
+    else if (num === 0) {
+        await screenPeerconnection.addIceCandidate(ice);
+    }
 })

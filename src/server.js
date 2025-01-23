@@ -151,14 +151,14 @@ wsServer.on("connection", socket => {
         console.log(getPublicRooms())
     });
 
-    socket.on("offer", (offer, roomName) => {
-        socket.to(roomName).emit("offer", offer);
+    socket.on("offer", (offer1, offer2, roomName) => {
+        socket.to(roomName).emit("offer", offer1, offer2);
     })
-    socket.on("answer", (answer, roomName) => {
-        socket.to(roomName).emit("answer", answer);
+    socket.on("answer", (answer1, answer2, roomName) => {
+        socket.to(roomName).emit("answer", answer1, answer2);
     })
-    socket.on("ice", (ice, roomName) => {
-        socket.to(roomName).emit("ice", ice);
+    socket.on("ice", (ice, roomName, num) => {
+        socket.to(roomName).emit("ice", ice, num);
     })
 
     socket.on("new_message", (msg, time, roomName) => {
