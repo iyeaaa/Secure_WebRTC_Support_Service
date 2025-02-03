@@ -5,6 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Remote Control Service - 원격 제어</title>
     <link rel="stylesheet" href="/css/controllerstyle.css">
+    <!-- Font Awesome CDN (head 태그 내 추가) -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
 </head>
 <body>
 <div class="remote-control-page">
@@ -18,10 +20,20 @@
             <video autoplay muted playsinline></video>
         </div>
 
-        <!-- 화면 공유 제어 버튼 -->
+        <!-- HTML 추가 부분 -->
         <div class="screen-share-controls">
-            <button id="startShareBtn">화면 공유 시작</button>
-            <button id="stopShareBtn" disabled>화면 공유 중지</button>
+            <button id="startShareBtn">
+                <i class="fas fa-desktop"></i>
+                화면 공유
+            </button>
+            <button id="stopShareBtn" disabled>
+                <i class="fas fa-stop"></i>
+                중지
+            </button>
+            <button id="screenCropBtn" class="crop-btn">
+                <i class="fas fa-crop-alt"></i>
+                영역 선택
+            </button>
         </div>
     </div>
 

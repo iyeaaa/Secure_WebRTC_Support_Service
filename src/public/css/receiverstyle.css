@@ -49,22 +49,99 @@ body {
     box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
 }
 
-/* 화면 공유 시작/중지 버튼 컨테이너 */
+/* CSS 추가/수정 부분 */
 .screen-share-controls {
-    margin-top: 20px;
-    text-align: center;
+    position: absolute;
+    bottom: 30px;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    gap: 12px;
+    background: rgba(255, 255, 255, 0.9);
+    padding: 15px 25px;
+    border-radius: 50px;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+    backdrop-filter: blur(5px);
 }
 
 .screen-share-controls button {
-    margin: 0 5px;
-    padding: 8px 15px;
-    background-color: #007bff;
-    color: #ffffff;
-    border: none;
-    border-radius: 4px;
-    font-size: 16px;
-    cursor: pointer;
-    transition: background-color 0.3s ease;
+    padding: 12px 25px;
+    border-radius: 30px;
+    font-weight: 600;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    border: 2px solid transparent;
+}
+
+/* 특수 크롭 버튼 스타일 */
+.crop-btn {
+    background: linear-gradient(135deg, #4CAF50 0%, #45a049 100%);
+    color: white;
+    position: relative;
+    overflow: hidden;
+}
+
+.crop-btn::after {
+    content: "";
+    position: absolute;
+    top: -50%;
+    left: -50%;
+    width: 200%;
+    height: 200%;
+    background: linear-gradient(
+            45deg,
+            transparent 25%,
+            rgba(255, 255, 255, 0.2) 50%,
+            transparent 75%
+    );
+    animation: cropShine 3s infinite linear;
+    transform: rotate(45deg);
+}
+
+@keyframes cropShine {
+    0% { transform: translateX(-100%) rotate(45deg); }
+    100% { transform: translateX(100%) rotate(45deg); }
+}
+
+/* 호버 효과 */
+.crop-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(76, 175, 80, 0.4);
+}
+
+/* 활성화 상태 */
+.crop-btn:active {
+    transform: scale(0.95);
+}
+
+/* 아이콘 스타일 */
+.fas {
+    font-size: 1.2em;
+    transition: transform 0.3s ease;
+}
+
+button:hover .fas {
+    transform: scale(1.1);
+}
+
+/* 반응형 처리 */
+@media (max-width: 768px) {
+    .screen-share-controls {
+        padding: 12px 20px;
+        border-radius: 40px;
+        bottom: 20px;
+    }
+
+    .screen-share-controls button {
+        padding: 10px 20px;
+        font-size: 14px;
+    }
+
+    .crop-btn::after {
+        animation-duration: 5s;
+    }
 }
 
 .screen-share-controls button:hover:not(:disabled) {
@@ -197,3 +274,4 @@ body {
     font-size: 12px;
     color: #999;
 }
+

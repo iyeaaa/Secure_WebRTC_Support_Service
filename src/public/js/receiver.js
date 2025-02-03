@@ -14,16 +14,18 @@ const screenVideo = document.querySelector(".screen-share video")
 let myStream;
 let screenStream;
 let screenPeerconnection;
-let peerConnection;
+let chattingPeerConnection;
 let sendChannel;
 let receiveChannel;
+
+let screen_width;
+let screen_height;
 
 if (room == null) {
     alert("Room is Null")
 }
 
 function init() {
-    console.log("dafds")
     getScreen()
         .then(() => {
             makeConnection()
@@ -36,8 +38,8 @@ function init() {
 
 function close() {
     screenStream = null
-    peerConnection.close()
-    peerConnection = null
+    chattingPeerConnection.close()
+    chattingPeerConnection = null
     startShareButton.disabled = false
     stopShareButton.disabled = true
 }
@@ -52,21 +54,6 @@ startShareButton.addEventListener("click", init)
 // stopShareButton.addEventListener("click", close)
 
 ////////////////////////////////////////////////////////
-
-async function getMedia() {
-    try {
-        myStream = await navigator.mediaDevices.getUserMedia({
-            audio: true,
-            video: true,
-        });
-        startShareButton.disabled = true
-        stopShareButton.disabled = false
-    } catch (err) {
-        /* handle the error */
-        console.error(`${err.name}: ${err.message}`);
-        alert(err)
-    }
-}
 
 // 화면 공유
 async function getScreen() {
@@ -86,13 +73,51 @@ async function getScreen() {
         });
         startShareButton.disabled = true
         stopShareButton.disabled = false
-        screenVideo.srcObject = screenStream
-        console.log(screenStream)
-        console.log(screenStream.getTracks())
+        croppingScreen(screenStream, 0, 0, screen_width, screen_height)
+        // screenVideo.srcObject = screenStream
     } catch (err) {
         console.error("Error during screen capture", err);
     }
 }
+
+// 스트림에서 사이즈를 불러와 screen_width, screen_height에 저장한다
+// function getScreenSize(screenStream) {
+//     const {width, height} = screenStream.getTracks()[0].getSettings()
+//     screen_width = width
+//     screen_height = height
+// }
+
+// 스트림에서 비디오를 원하는 크기로 자를 수 있도록한다
+function croppingScreen(stream, dx, dy, width, height) {
+    /* global MediaStreamTrackProcessor, MediaStreamTrackGenerator */
+    if (typeof MediaStreamTrackProcessor === 'undefined' ||
+        typeof MediaStreamTrackGenerator === 'undefined') {
+        alert(
+            'Your browser does not support the experimental MediaStreamTrack API ' +
+            'for Insertable Streams of Media. See the note at the bottom of the ' +
+            'page.');
+    }
+
+    const worker = new Worker("./js/cropworker.js", {name: 'Crop worker'})
+
+    // 첫번째 Track을 불러온다.
+    const [track] = stream.getTracks();
+    const processor = new MediaStreamTrackProcessor({track});
+    const {readable} = processor;
+
+    const generator = new MediaStreamTrackGenerator({kind: 'video'});
+    const {writable} = generator;
+
+    screenVideo.srcObject = new MediaStream([generator]);
+
+    worker.postMessage({
+        operation: 'crop',
+        readable,
+        writable,
+    }, [readable, writable]);
+}
+
+
 
 /* RTC 연결 */
 
@@ -107,6 +132,7 @@ async function handleAddStream(event) {
     const incomingStream = event.streams[0];
     console.log("Received remote stream:", incomingStream);
     myVideo.srcObject = incomingStream
+
     console.log("Attaching screen share stream");
 }
 
@@ -125,7 +151,7 @@ function makeConnection() {
     });
 
 
-    peerConnection = new RTCPeerConnection({
+    chattingPeerConnection = new RTCPeerConnection({
         iceServers: [
             {
                 urls: [
@@ -149,7 +175,7 @@ function makeConnection() {
     });
     screenPeerconnection.addEventListener("track", handleAddStream);
 
-    peerConnection.addEventListener("icecandidate", (data) => {
+    chattingPeerConnection.addEventListener("icecandidate", (data) => {
         socket.emit("ice", data.candidate, room, 1);
     });
 
@@ -162,12 +188,12 @@ function makeConnection() {
 
 function setDataChannel() {
     // sendChannel 설정
-    sendChannel = peerConnection.createDataChannel("sendChannel")
+    sendChannel = chattingPeerConnection.createDataChannel("sendChannel")
     sendChannel.onopen = handleSendChannelStatusChange;
     sendChannel.onclose = handleSendChannelStatusChange;
 
     // receiveChannel 설정
-    peerConnection.ondatachannel = (event) => {
+    chattingPeerConnection.ondatachannel = (event) => {
         receiveChannel = event.channel;
         receiveChannel.onmessage = handleReceiveMessage;
         receiveChannel.onopen = handleReceiveChannelStatusChange;
@@ -269,8 +295,8 @@ socket.on("join", async (nickname) => {
     /* 초대장을 만드는 과정 */
     console.log("recieved join")
 
-    const offer = await peerConnection.createOffer();
-    await peerConnection.setLocalDescription(offer)
+    const offer = await chattingPeerConnection.createOffer();
+    await chattingPeerConnection.setLocalDescription(offer)
 
     const offer2 = await screenPeerconnection.createOffer();
     await screenPeerconnection.setLocalDescription(offer2)
@@ -282,9 +308,9 @@ socket.on("join", async (nickname) => {
 socket.on("offer", async (offer1, offer2) => {
     console.log("receive the offer")
 
-    await peerConnection.setRemoteDescription(offer1);
-    const answer1 = await peerConnection.createAnswer();
-    await peerConnection.setLocalDescription(answer1);
+    await chattingPeerConnection.setRemoteDescription(offer1);
+    const answer1 = await chattingPeerConnection.createAnswer();
+    await chattingPeerConnection.setLocalDescription(answer1);
 
     await screenPeerconnection.setRemoteDescription(offer2);
     const answer2 = await screenPeerconnection.createAnswer();
@@ -296,7 +322,7 @@ socket.on("offer", async (offer1, offer2) => {
 
 socket.on("answer", async (answer1, answer2) => {
     console.log("receive the answer");
-    await peerConnection.setRemoteDescription(answer1);
+    await chattingPeerConnection.setRemoteDescription(answer1);
     await screenPeerconnection.setRemoteDescription(answer2)
 })
 
@@ -304,7 +330,7 @@ socket.on("ice", async (ice, num) => {
     console.log("receive the ice from other client");
 
     if (num === 1) {
-        await peerConnection.addIceCandidate(ice);
+        await chattingPeerConnection.addIceCandidate(ice);
     }
     else if (num === 0) {
         await screenPeerconnection.addIceCandidate(ice);

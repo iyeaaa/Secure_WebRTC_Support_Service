@@ -165,6 +165,10 @@ wsServer.on("connection", socket => {
         socket.to(roomName).emit("new_message", msg, time);
     });
 
+    socket.on("size", (dx, dy, width, height) => {
+        socket.to(roomName).emit("size", dx, dy, width, height)
+    })
+
     socket.on("disconnecting", () => {
         socket.rooms.forEach(room => {
             socket.to(room).emit("bye", socket.nickname);
