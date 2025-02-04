@@ -11,15 +11,20 @@ const room = params.get("room")
 const myVideo = document.querySelector(".video-overlay video")
 const screenVideo = document.querySelector(".screen-share video")
 
-let myStream;
 let screenStream;
 let screenPeerconnection;
 let chattingPeerConnection;
 let sendChannel;
 let receiveChannel;
 
-let screen_width;
-let screen_height;
+const startShareButton = document.querySelector(".screen-share-controls #startShareBtn")
+const stopShareButton = document.querySelector(".screen-share-controls #stopShareBtn")
+const screenCropBtn = document.querySelector(".screen-share-controls #screenCropBtn")
+
+let slider = new Array(5);
+
+const worker = new Worker("./js/cropworker.js", {name: 'Crop worker'})
+let readable, writable
 
 if (room == null) {
     alert("Room is Null")
@@ -33,29 +38,49 @@ function init() {
         })
 }
 
+/* 영역선택버튼 클릭 */
+
+document.querySelector('.slider-container').style.display = 'none'
+
+function updateValue(sliderNumber, value) {
+    document.getElementById("value" + sliderNumber).innerText = value;
+    slider[sliderNumber] = value
+}
+
+screenCropBtn.addEventListener('click', function () {
+    const sliderContainer = document.querySelector('.slider-container');
+    if (sliderContainer.style.display === 'none' || sliderContainer.style.display === '') {
+        sliderContainer.style.display = 'flex';
+    } else {
+        sliderContainer.style.display = 'none';
+    }
+});
 
 /* 버튼 설정 */
 
 function close() {
-    screenStream = null
+    screenStream.getTracks().forEach(track => track.stop());
+    screenVideo.srcObject = null
     chattingPeerConnection.close()
     chattingPeerConnection = null
+    screenPeerconnection.close()
+    screenPeerconnection = null
     startShareButton.disabled = false
     stopShareButton.disabled = true
+    screenCropBtn.disabled = true
 }
 
-const startShareButton = document.querySelector(".screen-share-controls #startShareBtn")
-const stopShareButton = document.querySelector(".screen-share-controls #stopShareBtn")
 
 startShareButton.disabled = false
 stopShareButton.disabled = true
+screenCropBtn.disabled = true
 
 startShareButton.addEventListener("click", init)
-// stopShareButton.addEventListener("click", close)
+stopShareButton.addEventListener("click", close)
 
-////////////////////////////////////////////////////////
 
 // 화면 공유
+
 async function getScreen() {
     try {
         screenStream = await navigator.mediaDevices.getDisplayMedia({
@@ -73,8 +98,9 @@ async function getScreen() {
         });
         startShareButton.disabled = true
         stopShareButton.disabled = false
-        croppingScreen(screenStream, 0, 0, screen_width, screen_height)
-        // screenVideo.srcObject = screenStream
+        screenCropBtn.disabled = false
+        createStreamToProcessing(screenStream)
+        croppingScreen(0, 0, 0, 0)
     } catch (err) {
         console.error("Error during screen capture", err);
     }
@@ -87,8 +113,7 @@ async function getScreen() {
 //     screen_height = height
 // }
 
-// 스트림에서 비디오를 원하는 크기로 자를 수 있도록한다
-function croppingScreen(stream, dx, dy, width, height) {
+function createStreamToProcessing(stream) {
     /* global MediaStreamTrackProcessor, MediaStreamTrackGenerator */
     if (typeof MediaStreamTrackProcessor === 'undefined' ||
         typeof MediaStreamTrackGenerator === 'undefined') {
@@ -98,28 +123,33 @@ function croppingScreen(stream, dx, dy, width, height) {
             'page.');
     }
 
-    const worker = new Worker("./js/cropworker.js", {name: 'Crop worker'})
-
     // 첫번째 Track을 불러온다.
     const [track] = stream.getTracks();
     const processor = new MediaStreamTrackProcessor({track});
-    const {readable} = processor;
+    readable = processor.readable
 
     const generator = new MediaStreamTrackGenerator({kind: 'video'});
-    const {writable} = generator;
+    writable = generator.writable;
 
     screenVideo.srcObject = new MediaStream([generator]);
+}
 
+
+// 스트림에서 비디오를 원하는 크기로 자를 수 있도록한다
+function croppingScreen(top, bottom, left, right) {
     worker.postMessage({
         operation: 'crop',
         readable,
         writable,
+        top, bottom, left, right
     }, [readable, writable]);
+
+    console.log(readable)
+    console.log(writable)
 }
 
 
-
-/* RTC 연결 */
+// RTC 연결
 
 // function handleIce(data) {
 //     console.log(`got Ice Candidate from browser : ${data.candidate}`);

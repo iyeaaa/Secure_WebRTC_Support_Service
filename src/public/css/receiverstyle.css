@@ -1,4 +1,3 @@
-/* controllerstyle.css */
 body {
     margin: 0;
     font-family: Arial, sans-serif;
@@ -24,37 +23,35 @@ body {
     position: relative;
 }
 
-/* 화면 공유 영역 */
-.screen-share video,
-.video-overlay video {
+.screen-share {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    max-width: 90%;
+    max-height: 90%;
+}
+
+.screen-share video {
     width: 100%;
     height: auto;
-    max-width: 1000px;
-    max-height: 700px;
+    border: 2px solid #ddd;
+    border-radius: 8px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    max-height: 100%;
+    max-width: 100%;
+}
+
+.video-overlay {
+    width: 100%;
+    height: auto;
     border: 2px solid #ddd;
     border-radius: 8px;
     box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
 }
 
-/* 오버레이(작은 화면) */
-.video-overlay video {
-    position: absolute;
-    width: 200px;
-    height: 150px;
-    bottom: 20px;
-    right: 20px;
-    border: 2px solid #ddd;
-    border-radius: 8px;
-    background-color: white;
-    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-}
-
-/* CSS 추가/수정 부분 */
 .screen-share-controls {
     position: absolute;
     bottom: 30px;
-    left: 50%;
-    transform: translateX(-50%);
     display: flex;
     gap: 12px;
     background: rgba(255, 255, 255, 0.9);
@@ -75,7 +72,6 @@ body {
     border: 2px solid transparent;
 }
 
-/* 특수 크롭 버튼 스타일 */
 .crop-btn {
     background: linear-gradient(135deg, #4CAF50 0%, #45a049 100%);
     color: white;
@@ -83,40 +79,15 @@ body {
     overflow: hidden;
 }
 
-.crop-btn::after {
-    content: "";
-    position: absolute;
-    top: -50%;
-    left: -50%;
-    width: 200%;
-    height: 200%;
-    background: linear-gradient(
-            45deg,
-            transparent 25%,
-            rgba(255, 255, 255, 0.2) 50%,
-            transparent 75%
-    );
-    animation: cropShine 3s infinite linear;
-    transform: rotate(45deg);
-}
-
-@keyframes cropShine {
-    0% { transform: translateX(-100%) rotate(45deg); }
-    100% { transform: translateX(100%) rotate(45deg); }
-}
-
-/* 호버 효과 */
 .crop-btn:hover {
     transform: translateY(-2px);
     box-shadow: 0 5px 15px rgba(76, 175, 80, 0.4);
 }
 
-/* 활성화 상태 */
 .crop-btn:active {
     transform: scale(0.95);
 }
 
-/* 아이콘 스타일 */
 .fas {
     font-size: 1.2em;
     transition: transform 0.3s ease;
@@ -126,34 +97,6 @@ button:hover .fas {
     transform: scale(1.1);
 }
 
-/* 반응형 처리 */
-@media (max-width: 768px) {
-    .screen-share-controls {
-        padding: 12px 20px;
-        border-radius: 40px;
-        bottom: 20px;
-    }
-
-    .screen-share-controls button {
-        padding: 10px 20px;
-        font-size: 14px;
-    }
-
-    .crop-btn::after {
-        animation-duration: 5s;
-    }
-}
-
-.screen-share-controls button:hover:not(:disabled) {
-    background-color: #0056b3;
-}
-
-.screen-share-controls button:disabled {
-    background-color: #ccc;
-    cursor: not-allowed;
-}
-
-/* 채팅 영역 */
 .chat-sidebar {
     flex: 1;
     display: flex;
@@ -181,27 +124,11 @@ button:hover .fas {
     border-bottom: 1px solid #ddd;
 }
 
-/* 스크롤바 */
-.chat-messages::-webkit-scrollbar {
-    width: 8px;
-}
-
-.chat-messages::-webkit-scrollbar-thumb {
-    background-color: #ccc;
-    border-radius: 4px;
-}
-
 .chat-input {
     display: flex;
     align-items: center;
     padding: 10px;
     background-color: #ffffff;
-}
-
-.chat-input .file-upload-btn {
-    font-size: 18px;
-    cursor: pointer;
-    margin-right: 10px;
 }
 
 .chat-input input[type="text"] {
@@ -228,17 +155,6 @@ button:hover .fas {
     background-color: #0056b3;
 }
 
-/* 채팅 메시지 스타일 */
-.chat-messages {
-    flex: 1;
-    padding: 10px;
-    overflow-y: auto;
-    background-color: #f9f9f9;
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
-}
-
 .chat-messages .message {
     display: flex;
     flex-direction: column;
@@ -252,20 +168,15 @@ button:hover .fas {
 
 .chat-messages .message.mine {
     align-self: flex-end;
-    background-color: #d1f7c4; /* 밝은 녹색 */
+    background-color: #d1f7c4;
     color: #333;
 }
 
 .chat-messages .message.other {
     align-self: flex-start;
-    background-color: #ffffff; /* 흰색 */
+    background-color: #ffffff;
     border: 1px solid #ddd;
     color: #333;
-}
-
-.chat-messages .message p {
-    margin: 0;
-    word-wrap: break-word;
 }
 
 .chat-messages .message .timestamp {
@@ -275,3 +186,20 @@ button:hover .fas {
     color: #999;
 }
 
+.slider-container {
+    position: absolute;
+    bottom: 100px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: rgba(255, 255, 255, 0.9);
+    padding: 10px 20px;
+    border-radius: 10px;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.slider-container input[type="range"] {
+    width: 200px;
+}
