@@ -49,13 +49,15 @@
     <input type="range" id="slider1" min="0" max="100" value="0" oninput="updateValue(1, this.value)">
 
     <label for="slider2">bottom: <span id="value2">0</span></label>
-    <input type="range" id="slider2" min="0" max="100" value="0" oninput="updateValue(2, this.values)">
+    <input type="range" id="slider2" min="0" max="100" value="0" oninput="updateValue(2, this.value)">
 
     <label for="slider3">left: <span id="value3">0</span></label>
-    <input type="range" id="slider3" min="0" max="100" value="0" oninput="updateValue(3, this.values)">
+    <input type="range" id="slider3" min="0" max="100" value="0" oninput="updateValue(3, this.value)">
 
     <label for="slider4">right: <span id="value4">0</span></label>
-    <input type="range" id="slider4" min="0" max="100" value="0" oninput="updateValue(4, this.values)">
+    <input type="range" id="slider4" min="0" max="100" value="0" oninput="updateValue(4, this.value)">
+
+    <button id="applyBtn" onclick="applySliderValues()">적용</button>
 </div>
 
 <script src="/socket.io/socket.io.js"></script>

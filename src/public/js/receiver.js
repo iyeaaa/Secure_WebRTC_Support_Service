@@ -21,7 +21,7 @@ const startShareButton = document.querySelector(".screen-share-controls #startSh
 const stopShareButton = document.querySelector(".screen-share-controls #stopShareBtn")
 const screenCropBtn = document.querySelector(".screen-share-controls #screenCropBtn")
 
-let slider = new Array(5);
+let slider = [0, 0, 0, 0, 0];
 
 const worker = new Worker("./js/cropworker.js", {name: 'Crop worker'})
 let readable, writable
@@ -55,6 +55,18 @@ screenCropBtn.addEventListener('click', function () {
         sliderContainer.style.display = 'none';
     }
 });
+
+// 적용 버튼을 눌렀을 때 실행될 함수
+function applySliderValues() {
+    // slider 배열에 저장된 값을 사용하여 croppingScreen 함수 호출
+    // slider 값이 모두 있는지 확인하고, 없으면 기본값을 설정할 수 있습니다.
+    const top = slider[1] || 0;
+    const bottom = slider[2] || 0;
+    const left = slider[3] || 0;
+    const right = slider[4] || 0;
+    console.log("적용 버튼 클릭:", top, bottom, left, right);
+    croppingScreen(top, bottom, left, right);
+}
 
 /* 버튼 설정 */
 
@@ -99,7 +111,6 @@ async function getScreen() {
         startShareButton.disabled = true
         stopShareButton.disabled = false
         screenCropBtn.disabled = false
-        createStreamToProcessing(screenStream)
         croppingScreen(0, 0, 0, 0)
     } catch (err) {
         console.error("Error during screen capture", err);
@@ -113,7 +124,7 @@ async function getScreen() {
 //     screen_height = height
 // }
 
-function createStreamToProcessing(stream) {
+function croppingScreen(top, bottom, left, right) {
     /* global MediaStreamTrackProcessor, MediaStreamTrackGenerator */
     if (typeof MediaStreamTrackProcessor === 'undefined' ||
         typeof MediaStreamTrackGenerator === 'undefined') {
@@ -124,7 +135,7 @@ function createStreamToProcessing(stream) {
     }
 
     // 첫번째 Track을 불러온다.
-    const [track] = stream.getTracks();
+    const [track] = screenStream.getTracks();
     const processor = new MediaStreamTrackProcessor({track});
     readable = processor.readable
 
@@ -132,20 +143,13 @@ function createStreamToProcessing(stream) {
     writable = generator.writable;
 
     screenVideo.srcObject = new MediaStream([generator]);
-}
 
-
-// 스트림에서 비디오를 원하는 크기로 자를 수 있도록한다
-function croppingScreen(top, bottom, left, right) {
     worker.postMessage({
         operation: 'crop',
         readable,
         writable,
         top, bottom, left, right
     }, [readable, writable]);
-
-    console.log(readable)
-    console.log(writable)
 }
 
 
