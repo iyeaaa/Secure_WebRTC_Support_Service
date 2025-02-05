@@ -22,10 +22,12 @@ if (room == null) {
     alert("Room is Null")
 }
 
+socket.emit("join", room)
+
 getMedia()
     .then(() => {
         makeConnection()
-        socket.emit("join", room)
+        socket.emit("start", room)
     })
 
 function close(event) {
@@ -52,21 +54,6 @@ async function getMedia() {
 
 
 /* RTC 연결 */
-
-function handleIce(data) {
-    console.log(`got Ice Candidate from browser : ${data.candidate}`);
-    socket.emit("ice", data.candidate, room);
-    console.log(`sent the ice candidate`);
-}
-
-// handleAddStream에서 스트림 분리 처리
-async function handleAddStream(event) {
-    const incomingStream = event.streams[0];
-    console.log("Received remote stream:", incomingStream);
-
-    console.log("Attaching screen share stream");
-    screenVideo.srcObject = incomingStream;
-}
 
 function makeConnection() {
     chattingPeerConnection = new RTCPeerConnection({
@@ -97,22 +84,36 @@ function makeConnection() {
 
     setDataChannel()
 
+    // myStream.getTracks().forEach(track => myPeerConnection.addTrack(track, myStream));
+    if (screenStream)
+        screenStream.getTracks().forEach(track => screenPeerconnection.addTrack(track, screenStream));
+    setIce()
+}
+
+// handleAddStream에서 스트림 분리 처리
+async function handleAddStream(event) {
+    const incomingStream = event.streams[0];
+    console.log("Received remote stream:", incomingStream);
+
+    console.log("Attaching screen share stream");
+    screenVideo.srcObject = incomingStream;
+}
+
+function setIce() {
     /*
         candidate : 소통하는 방식을 설명한다.
         브라우저에 의해 candidate가 생성된다.
     */
     screenPeerconnection.addEventListener("icecandidate", (data) => {
         socket.emit("ice", data.candidate, room, 0);
+        console.log("sent screen ice")
     });
     screenPeerconnection.addEventListener("track", handleAddStream);
 
     chattingPeerConnection.addEventListener("icecandidate", (data) => {
         socket.emit("ice", data.candidate, room, 1);
+        console.log("sent chat ice")
     });
-
-    // myStream.getTracks().forEach(track => myPeerConnection.addTrack(track, myStream));
-    if (screenStream)
-        screenStream.getTracks().forEach(track => screenPeerconnection.addTrack(track, screenStream));
 }
 
 /* Data Channel 설정 */
@@ -223,7 +224,7 @@ function appendMessageToChat(content, timestamp, isMine = false) {
 
 /* Socket ON */
 
-socket.on("join", async (nickname) => {
+socket.on("start", async (nickname) => {
     /* 초대장을 만드는 과정 */
     console.log("recieved join")
 
@@ -241,15 +242,16 @@ socket.on("offer", async (offer1, offer2) => {
     console.log("receive the offer")
 
     await chattingPeerConnection.setRemoteDescription(offer1);
+    await screenPeerconnection.setRemoteDescription(offer2);
+
     const answer1 = await chattingPeerConnection.createAnswer();
     await chattingPeerConnection.setLocalDescription(answer1);
-
-    await screenPeerconnection.setRemoteDescription(offer2);
     const answer2 = await screenPeerconnection.createAnswer();
     await screenPeerconnection.setLocalDescription(answer2);
 
     socket.emit("answer", answer1, answer2, room);
     console.log("sent the answer");
+
 })
 
 socket.on("answer", async (answer1, answer2) => {

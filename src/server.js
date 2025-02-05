@@ -147,8 +147,11 @@ wsServer.on("connection", socket => {
 
     socket.on("join", (roomName) => {
         socket.join(roomName)
-        socket.to(roomName).emit("join", socket.nickname);
-        console.log(getPublicRooms())
+    })
+
+    socket.on("start", (roomName) => {
+        socket.join(roomName)
+        socket.to(roomName).emit("start", socket.nickname);
     });
 
     socket.on("offer", (offer1, offer2, roomName) => {
