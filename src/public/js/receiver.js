@@ -154,6 +154,7 @@ function croppingScreen(top, bottom, left, right) {
     }, [readable, writable]);
 
     makeConnection()
+    socket.emit("start", room)
 }
 
 
