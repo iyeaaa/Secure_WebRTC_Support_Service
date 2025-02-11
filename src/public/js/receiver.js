@@ -113,7 +113,8 @@ async function getScreen() {
         startShareButton.disabled = true
         stopShareButton.disabled = false
         screenCropBtn.disabled = false
-        croppingScreen(0, 0, 0, 0)
+
+        screenVideo.srcObject = screenStream
     } catch (err) {
         console.error("Error during screen capture", err);
     }
@@ -201,6 +202,7 @@ function makeConnection() {
     // myStream.getTracks().forEach(track => myPeerConnection.addTrack(track, myStream));
     if (screenVideo.srcObject)
         screenVideo.srcObject.getTracks().forEach(track => screenPeerconnection.addTrack(track, screenVideo.srcObject));
+
     setIce()
 }
 
