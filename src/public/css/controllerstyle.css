@@ -24,29 +24,36 @@ body {
     position: relative;
 }
 
-/* 화면 공유 영역 */
-.screen-share video,
-.video-overlay video {
+.screen-share {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    max-width: 90%;
+    max-height: 90%;
+}
+
+
+.screen-share video {
     width: 100%;
     height: auto;
-    max-width: 1000px;
-    max-height: 700px;
+    border: 2px solid #ddd;
+    border-radius: 8px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    max-height: 100%;
+    max-width: 100%;
+}
+
+.video-overlay {
+    width: 100%;
+    height: auto;
     border: 2px solid #ddd;
     border-radius: 8px;
     box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
 }
 
-/* 오버레이(작은 화면) */
 .video-overlay video {
-    position: absolute;
-    width: 200px;
-    height: 150px;
-    bottom: 20px;
-    right: 20px;
-    border: 2px solid #ddd;
-    border-radius: 8px;
-    background-color: white;
-    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    width: 100%;
+    height: auto;
 }
 
 /* 화면 공유 시작/중지 버튼 컨테이너 */

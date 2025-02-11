@@ -49,6 +49,11 @@ body {
     box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
 }
 
+.video-overlay video {
+    width: 100%;
+    height: auto;
+}
+
 .screen-share-controls {
     position: absolute;
     bottom: 30px;

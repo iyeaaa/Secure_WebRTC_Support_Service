@@ -11,7 +11,6 @@ const room = params.get("room")
 const myVideo = document.querySelector(".video-overlay video")
 const screenVideo = document.querySelector(".screen-share video")
 
-let myStream;
 let screenStream;
 let screenPeerconnection;
 let chattingPeerConnection;
