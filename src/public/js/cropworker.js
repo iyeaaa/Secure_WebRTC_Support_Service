@@ -1,5 +1,5 @@
 let rt, rl, rr, rb;
-
+// crop
 function transform(frame, controller) {
     const top = frame.displayHeight * (rt / 100);
     const left = frame.displayWidth * (rl / 100);
