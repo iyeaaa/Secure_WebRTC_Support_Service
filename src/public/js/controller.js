@@ -1,40 +1,41 @@
+const socket = io();
+const configuration = {
+    iceServers: [{ urls: 'stun:stun.l.google.com:19302' }]
+};
 
+const input = document.getElementById("text-input");
+const sendMessageButton = document.getElementById("sendbtn");
 
-const socket = io()
-
-const input = document.getElementById("text input")
-const sendMessageButton = document.getElementById("sendbtn")
-
-const url = new URL(window.location.href); // 현재 페이지의 전체 URL
+const url = new URL(window.location.href);
 const params = url.searchParams;
-const room = params.get("room")
-const myVideo = document.querySelector(".video-overlay video")
-const screenVideo = document.querySelector(".screen-share video")
+const room = params.get("room");
+const myVideo = document.querySelector(".video-overlay video");
+const screenVideo = document.querySelector(".screen-share video");
 
 let screenStream;
-let screenPeerconnection;
-let chattingPeerConnection;
+let peerConnection;
 let sendChannel;
 let receiveChannel;
 
 if (room == null) {
-    alert("Room is Null")
+    alert("Room is Null");
 }
 
-socket.emit("join", room)
+socket.emit("join", room);
 
-getMedia()
-    .then(() => {
-        makeConnection()
-        socket.emit("start", room)
-    })
+getMedia().then(() => {
+    makeConnection();
+});
 
 function close(event) {
-    screenStream = null
-    chattingPeerConnection.close()
-    chattingPeerConnection = null
-    startShareButton.disabled = false
-    stopShareButton.disabled = true
+    screenStream = null;
+    if (peerConnection) {
+        peerConnection.close();
+        peerConnection = null;
+    }
+    // 필요한 경우 UI 업데이트
+    startShareButton.disabled = false;
+    stopShareButton.disabled = true;
 }
 
 async function getMedia() {
@@ -43,88 +44,54 @@ async function getMedia() {
             audio: true,
             video: true,
         });
-        myVideo.srcObject = screenStream
+        myVideo.srcObject = screenStream;
     } catch (err) {
-        /* handle the error */
         console.error(`${err.name}: ${err.message}`);
-        alert(err)
+        alert(err);
     }
 }
 
-
 /* RTC 연결 */
-
 function makeConnection() {
-    chattingPeerConnection = new RTCPeerConnection({
-        iceServers: [
-            {
-                urls: [
-                    "stun:stun.l.google.com:19302",
-                    "stun:stun.l.google.com:5349",
-                    "stun:stun1.l.google.com:3478",
-                    "stun:stun1.l.google.com:5349"
-                ]
-            }
-        ]
+    peerConnection = new RTCPeerConnection(configuration);
+
+    // 데이터 채널 설정 (채팅용)
+    setDataChannel();
+
+    // 로컬 스트림의 모든 트랙을 연결에 추가 (화면 및 음성)
+    if (screenStream) {
+        screenStream.getTracks().forEach(track => {
+            peerConnection.addTrack(track, screenStream);
+        });
+    }
+
+    // ICE 후보 이벤트 처리
+    peerConnection.addEventListener("icecandidate", (event) => {
+        if (event.candidate) {
+            socket.emit("ice", event.candidate, room);
+            console.log("sent ice candidate");
+        }
     });
 
-    screenPeerconnection = new RTCPeerConnection({
-        iceServers: [
-            {
-                urls: [
-                    "stun:stun.l.google.com:19302",
-                    "stun:stun.l.google.com:5349",
-                    "stun:stun1.l.google.com:3478",
-                    "stun:stun1.l.google.com:5349"
-                ]
-            }
-        ]
-    });
-
-    setDataChannel()
-
-    // myStream.getTracks().forEach(track => myPeerConnection.addTrack(track, myStream));
-    if (screenStream)
-        screenStream.getTracks().forEach(track => screenPeerconnection.addTrack(track, screenStream));
-    setIce()
+    // 원격 스트림 수신 처리
+    peerConnection.addEventListener("track", handleAddStream);
 }
 
-// handleAddStream에서 스트림 분리 처리
 async function handleAddStream(event) {
     const incomingStream = event.streams[0];
     console.log("Received remote stream:", incomingStream);
-
-    console.log("Attaching screen share stream");
     screenVideo.srcObject = incomingStream;
 }
 
-function setIce() {
-    /*
-        candidate : 소통하는 방식을 설명한다.
-        브라우저에 의해 candidate가 생성된다.
-    */
-    screenPeerconnection.addEventListener("icecandidate", (data) => {
-        socket.emit("ice", data.candidate, room, 0);
-        console.log("sent screen ice")
-    });
-    screenPeerconnection.addEventListener("track", handleAddStream);
-
-    chattingPeerConnection.addEventListener("icecandidate", (data) => {
-        socket.emit("ice", data.candidate, room, 1);
-        console.log("sent chat ice")
-    });
-}
-
 /* Data Channel 설정 */
-
 function setDataChannel() {
-    // sendChannel 설정
-    sendChannel = chattingPeerConnection.createDataChannel("sendChannel")
+    // sendChannel 생성 (메시지 전송용)
+    sendChannel = peerConnection.createDataChannel("sendChannel");
     sendChannel.onopen = handleSendChannelStatusChange;
     sendChannel.onclose = handleSendChannelStatusChange;
 
-    // receiveChannel 설정
-    chattingPeerConnection.ondatachannel = (event) => {
+    // 원격 데이터 채널 수신
+    peerConnection.ondatachannel = (event) => {
         receiveChannel = event.channel;
         receiveChannel.onmessage = handleReceiveMessage;
         receiveChannel.onopen = handleReceiveChannelStatusChange;
@@ -133,9 +100,9 @@ function setDataChannel() {
 }
 
 function handleSendChannelStatusChange(event) {
+    console.log("sendChannel: " + sendChannel.readyState)
     if (sendChannel) {
         const state = sendChannel.readyState;
-
         if (state === "open") {
             input.disabled = false;
             input.focus();
@@ -149,123 +116,85 @@ function handleSendChannelStatusChange(event) {
 
 function handleReceiveChannelStatusChange(event) {
     if (receiveChannel) {
-        console.log("Receive channel's status has changed to " +
-            receiveChannel.readyState);
+        console.log("Receive channel's status has changed to " + receiveChannel.readyState);
     }
 }
 
-/* Setting Chat */
-
+/* 채팅 관련 함수 */
 function timestamp2date(timestamp) {
-    const hours = timestamp.getHours(); // 0~23 (24시간 형식)
-    const minutes = timestamp.getMinutes(); // 0~59
-    return `${hours > 12 ? '오후' : '오전'} ${hours % 12 || 12}:${minutes.toString().padStart(2, '0')}`
+    const hours = timestamp.getHours();
+    const minutes = timestamp.getMinutes();
+    return `${hours > 12 ? '오후' : '오전'} ${hours % 12 || 12}:${minutes.toString().padStart(2, '0')}`;
 }
 
 sendMessageButton.addEventListener("click", event => {
-    const currenttime = timestamp2date(new Date())
+    const currenttime = timestamp2date(new Date());
     let message = input.value;
-
     sendChannel.send(message);
-    appendMessageToChat(message, currenttime, true)
-
-    input.value = ""
+    appendMessageToChat(message, currenttime, true);
+    input.value = "";
     input.focus();
-})
+});
 
 function handleReceiveMessage(event) {
-    let message = event.data
-    let time = event.timeStamp
-    console.log(time)
-    appendMessageToChat(message, timestamp2date(new Date(time * 1000)), false)
+    let message = event.data;
+    let time = event.timeStamp;
+    console.log(time);
+    appendMessageToChat(message, timestamp2date(new Date(time * 1000)), false);
 }
 
 function createMessageElement(content, timestamp, isMine = false) {
-    // Create the main container div
     const messageDiv = document.createElement('div');
     messageDiv.classList.add('message', isMine ? 'mine' : 'other');
 
-    // Create the paragraph element for the message content
     const contentParagraph = document.createElement('p');
     contentParagraph.textContent = content;
 
-    // Create the span element for the timestamp
     const timestampSpan = document.createElement('span');
     timestampSpan.classList.add('timestamp');
     timestampSpan.textContent = timestamp;
 
-    // Append the content and timestamp to the main container
     messageDiv.appendChild(contentParagraph);
     messageDiv.appendChild(timestampSpan);
 
-    // Return the created element
     return messageDiv;
 }
 
 function appendMessageToChat(content, timestamp, isMine = false) {
-    // Find the chat messages container
     const chatMessagesContainer = document.querySelector('.chat-messages');
-
     if (!chatMessagesContainer) {
         console.error('Chat messages container not found!');
         return;
     }
-
-    // Create the message element
     const newMessage = createMessageElement(content, timestamp, isMine);
-
-    // Append the new message to the chat messages container
     chatMessagesContainer.appendChild(newMessage);
-
-    // Scroll to the bottom of the chat
     chatMessagesContainer.scrollTop = chatMessagesContainer.scrollHeight;
 }
 
-/* Socket ON */
-
+/* Socket 이벤트 처리 */
 socket.on("start", async (nickname) => {
-    /* 초대장을 만드는 과정 */
-    console.log("recieved join")
-
-    const offer = await chattingPeerConnection.createOffer();
-    await chattingPeerConnection.setLocalDescription(offer)
-
-    const offer2 = await screenPeerconnection.createOffer();
-    await screenPeerconnection.setLocalDescription(offer2)
-
+    console.log("received join");
+    const offer = await peerConnection.createOffer();
+    await peerConnection.setLocalDescription(offer);
     console.log("sent the offer");
-    socket.emit("offer", offer, offer2, room);
-})
+    socket.emit("offer", offer, room);
+});
 
-socket.on("offer", async (offer1, offer2) => {
-    console.log("receive the offer")
-
-    await chattingPeerConnection.setRemoteDescription(offer1);
-    await screenPeerconnection.setRemoteDescription(offer2);
-
-    const answer1 = await chattingPeerConnection.createAnswer();
-    await chattingPeerConnection.setLocalDescription(answer1);
-    const answer2 = await screenPeerconnection.createAnswer();
-    await screenPeerconnection.setLocalDescription(answer2);
-
-    socket.emit("answer", answer1, answer2, room);
+socket.on("offer", async (offer) => {
+    console.log("receive the offer");
+    await peerConnection.setRemoteDescription(offer);
+    const answer = await peerConnection.createAnswer();
+    await peerConnection.setLocalDescription(answer);
+    socket.emit("answer", answer, room);
     console.log("sent the answer");
+});
 
-})
-
-socket.on("answer", async (answer1, answer2) => {
+socket.on("answer", async (answer) => {
     console.log("receive the answer");
-    await chattingPeerConnection.setRemoteDescription(answer1);
-    await screenPeerconnection.setRemoteDescription(answer2)
-})
+    await peerConnection.setRemoteDescription(answer);
+});
 
-socket.on("ice", async (ice, num) => {
+socket.on("ice", async (ice) => {
     console.log("receive the ice from other client");
-
-    if (num === 1) {
-        await chattingPeerConnection.addIceCandidate(ice);
-    }
-    else if (num === 0) {
-        await screenPeerconnection.addIceCandidate(ice);
-    }
-})
+    await peerConnection.addIceCandidate(ice);
+});
