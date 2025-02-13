@@ -106,20 +106,25 @@ function croppingScreen(top, bottom, left, right) {
     if (typeof MediaStreamTrackProcessor === 'undefined' ||
         typeof MediaStreamTrackGenerator === 'undefined') {
         alert(
-            'Your browser does not support the experimental MediaStreamTrack API ' +
-            'for Insertable Streams of Media. See the note at the bottom of the page.'
+            'Your browser does not support the experimental MediaStreamTrack API for Insertable Streams of Media.'
         );
+        return;
     }
-    // 첫번째 트랙을 가져와서 processor, generator 생성
+
+    // 기존 화면 스트림에서 첫번째 트랙 추출
     const [track] = screenStream.getTracks();
+
+    // 매번 새로운 Processor/Generator 생성
     const processor = new MediaStreamTrackProcessor({ track });
-    readable = processor.readable;
+    const readable = processor.readable;
 
     const generator = new MediaStreamTrackGenerator({ kind: 'video' });
-    writable = generator.writable;
+    const writable = generator.writable;
 
+    // 새 생성된 generator의 트랙으로 화면 업데이트
     screenVideo.srcObject = new MediaStream([generator]);
 
+    // cropworker에 새로운 스트림과 crop 파라미터 전달 (스트림은 transfer 됨)
     worker.postMessage({
         operation: 'crop',
         readable,
@@ -127,10 +132,24 @@ function croppingScreen(top, bottom, left, right) {
         top, bottom, left, right
     }, [readable, writable]);
 
-    // 새 연결을 만들어서 offer를 다시 보냄
-    makeConnection();
-    socket.emit("start", room);
+    // 만약 이미 RTCPeerConnection이 존재한다면, 기존 트랙을 새 generator의 트랙으로 교체!
+    if (peerConnection) {
+        const senders = peerConnection.getSenders();
+        const videoSender = senders.find(sender => sender.track && sender.track.kind === 'video');
+        if (videoSender) {
+            videoSender.replaceTrack(generator).then(r => console.log('비디오 트랙을 교체했습니다.'));
+        } else {
+            // 없다면 새로 추가
+            peerConnection.addTrack(generator, screenVideo.srcObject);
+            console.log('비디오 트랙을 추가했습니다.');
+        }
+    } else {
+        // 연결이 없다면 새 연결 생성 (기존 로직 유지)
+        makeConnection();
+        socket.emit("start", room);
+    }
 }
+
 
 async function handleAddStream(event) {
     const incomingStream = event.streams[0];
